@@ -5,19 +5,22 @@ import { User } from "./user.js";
 
 const messageSchema = new Schema({
     sender: {
-        type: Schema.ObjectId,
-        ref:User,
+        type: Schema.Types.ObjectId,
+        ref: "User",
         required: true,
 
     },
-    reciver: {
-        type: Schema.ObjectId,
-        ref:User,
+    reciever: {
+        type: Schema.Types.ObjectId,
+        ref: "User",
         required: true,
     },
-   
 
-    
-}, {timestamps:true})
+    text: { type: String },
+    image: { type: String },
+    seen: { type: Boolean, default: false },
 
-export const Message= model("Message", messageSchema);
+
+}, { timestamps: true })
+
+export const Message = model("Message", messageSchema);

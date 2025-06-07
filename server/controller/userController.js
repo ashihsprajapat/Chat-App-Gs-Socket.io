@@ -1,18 +1,19 @@
 
-import { User } from "../model/user";
+import { User } from "../model/user.js";
 import bcrypt from 'bcrypt'
 import { tokenGenerator } from "../utils/tokenGenerate.js";
+import cloudinary from "../utils/Claudinary.js";
 
 
+//user register function
 export const Register = async (req, res) => {
-    const { name, email, password } = req.body;
+    const { name, email, password, bio } = req.body;
 
-    if (!name || !email || !password)
-        return res.status(500).json({ message: "All detaul are requried", success: false })
 
     try {
 
-
+        if (!name || !email || !password || !bio)
+            return res.status(500).json({ message: "All detaul are requried", success: false })
 
         const user = await User.findOne({ email })
         if (user)
@@ -22,14 +23,14 @@ export const Register = async (req, res) => {
         const hashPassword = await bcrypt.hash(password, 10)
 
         const newUser = new User({
-            name, email, password: hashPassword
+            name, email, password: hashPassword, bio
         })
 
         await newUser.save()
 
-        const token=tokenGenerator(newUser._id)
+        const token = tokenGenerator(newUser._id)
 
-        res.json({ message: "user register successFull", success: true,token })
+        res.json({ message: "user register successFull", success: true, token })
     } catch (err) {
         console.log(err)
         res.json({ message: err.message, success: true })
@@ -37,6 +38,7 @@ export const Register = async (req, res) => {
 
 }
 
+//user login function
 export const login = async (req, res) => {
     const { email, password } = req.body;
 
@@ -56,13 +58,54 @@ export const login = async (req, res) => {
         if (!match)
             return res.json({ message: "Wrong password", success: false })
 
-        const token=tokenGenerator(user._id)
+        const token = tokenGenerator(user._id)
 
-        res.json({ message: "Login successfully", success: true,token })
+        res.json({ message: "Login successfully", success: true, token })
 
     }
     catch (err) {
         console.log(err)
         res.json({ message: err.message, success: false })
     }
+}
+
+//chech user authenticate or not
+export const isAuthUser = async (req, res) => {
+    try {
+
+        res.json({ success: true, user: req.user, message: "authenticate user" })
+
+    } catch (err) {
+        console.log(err.message)
+        res.json({ success: false, message: err.message })
+    }
+}
+
+//user profile chech
+export const userUpdate = async (req, res) => {
+
+    try {
+        const { bio, profilePic, name } = req.body
+
+        const userId = req.user._id;
+
+        let updateUser;
+
+        if (!profilePic) {
+            updateUser = await User.findByIdAndUpdate(userId, { bio, name }, { new: true })
+        } else {
+
+            const upload = await cloudinary.uploader.upload(profilePic)
+
+            updateUser = await User.findByIdAndUpdate(userId, { bio, name, profilePic: upload.secure_url }, { new: true })
+        }
+
+        res.json({ success: true, message: "user update", user: updateUser })
+
+    } catch(err) {
+        res.json({ success: false, message: err.message})
+
+    }
+
+
 }

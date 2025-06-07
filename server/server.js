@@ -12,6 +12,11 @@ import { Message } from './model/messag.js'
 
 import { main } from './utils/DBConnection.js'
 
+import userRouter from './routes/user.Routes.js'
+
+import messageRouter from './routes/message.routes.js'
+
+
 const port = process.env.PORT || 5059
 
 const app = express();
@@ -35,12 +40,10 @@ server.listen(port, () => {
 
 //connect to server
 main()
-.catch(err => console.log(err));
+    .catch(err => console.log(err));
 
 
 
-// const io = new Server(server);
-// io.on('connection', client => {
-//     client.on('event', data => { console.log("Event is triger") });
-//     client.on('disconnect', () => { /* … */ });
-// });
+app.use("/api/user", userRouter)
+
+app.use("/api/message", messageRouter)
