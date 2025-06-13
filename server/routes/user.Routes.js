@@ -12,9 +12,9 @@ userRouter.route("/login")
 
 
 userRouter.route("/isAuth")
-    .post(isAuth,  isAuthUser)
+    .get(isAuth,  isAuthUser)
 
 userRouter.route("/user-update")
-    .post( isAuth, userUpdate)
+    .put( isAuth, userUpdate)
 
 export default userRouter

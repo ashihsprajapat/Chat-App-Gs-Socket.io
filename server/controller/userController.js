@@ -30,7 +30,7 @@ export const Register = async (req, res) => {
 
         const token = tokenGenerator(newUser._id)
 
-        res.json({ message: "user register successFull", success: true, token })
+        res.json({ message: "user register successFull", user: newUser, success: true, token })
     } catch (err) {
         console.log(err)
         res.json({ message: err.message, success: true })
@@ -46,8 +46,6 @@ export const login = async (req, res) => {
         return res.json({ message: "all Details are required", success: false })
 
     try {
-
-
         const user = await User.findOne({ email })
 
         if (!user)
@@ -60,7 +58,7 @@ export const login = async (req, res) => {
 
         const token = tokenGenerator(user._id)
 
-        res.json({ message: "Login successfully", success: true, token })
+        res.json({ message: "Login successfully", user, success: true, token })
 
     }
     catch (err) {
@@ -102,8 +100,8 @@ export const userUpdate = async (req, res) => {
 
         res.json({ success: true, message: "user update", user: updateUser })
 
-    } catch(err) {
-        res.json({ success: false, message: err.message})
+    } catch (err) {
+        res.json({ success: false, message: err.message })
 
     }
 
