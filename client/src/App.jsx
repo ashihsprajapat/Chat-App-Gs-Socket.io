@@ -5,11 +5,11 @@ import './App.css'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
-import ProfilePage from './pages/profilePage'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import { Toaster } from 'react-hot-toast'
 import { AuthContext } from './context/AuthContext'
+import ProfilePage from './pages/ProfilePage';
 
 function App() {
   const [count, setCount] = useState(0)
