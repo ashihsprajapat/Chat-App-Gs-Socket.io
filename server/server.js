@@ -17,7 +17,7 @@ import userRouter from './routes/user.Routes.js'
 import messageRouter from './routes/message.routes.js'
 
 
-const port = process.env.PORT || 5059
+
 
 const app = express();
 
@@ -59,9 +59,12 @@ app.use("/api/status", (req, res) => {
     res.send("server is live")
 })
 
-server.listen(port, () => {
-    console.log("server is running on port", port)
-})
+if (process.env.NODE_ENV !== "production") {
+    const port = process.env.PORT || 5059
+    server.listen(port, () => {
+        console.log("server is running on port", port)
+    })
+}
 
 
 //connect to server
@@ -73,3 +76,7 @@ main()
 app.use("/api/user", userRouter)
 
 app.use("/api/message", messageRouter)
+
+
+//export server for vercel
+export default server

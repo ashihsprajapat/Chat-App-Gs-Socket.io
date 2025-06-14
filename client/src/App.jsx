@@ -23,7 +23,7 @@ function App() {
     <>
       {/* <Navbar /> */}
 
-      <div className="bg-[url('./src/assets/bgImage.svg')]    bg-contain " >
+      <div className="bg-[url('/bgImage.svg')]    bg-contain " >
 
         <Routes>
           <Route path='/' element={authUser ? <HomePage /> : <Navigate to={"/login"} />} />
