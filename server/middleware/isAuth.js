@@ -6,7 +6,8 @@ import { User } from "../model/user.js";
 export const isAuth = async (req, res, next) => {
 
     try {
-        const { chat_app_GS_Token:token } = req.headers
+        const token = req.headers.chat_app_gs_token
+      
 
         if (!token)
             return res.json({ message: "token required", success: false })

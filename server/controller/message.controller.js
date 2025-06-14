@@ -24,7 +24,7 @@ export const getUsersForSidebar = async (req, res) => {
             return
         })
 
-        await promises.all(promises)
+        await Promise.all(promises)
 
         res.json({
             users: filterUser, unSeenMessage, message: "find all user success", success: true,
@@ -38,24 +38,40 @@ export const getUsersForSidebar = async (req, res) => {
 }
 
 //get all messsage  message selected user
-export const getMessage = async () => {
+export const getMessage = async (req, res) => {
     try {
 
         const userId = req.user._id
         const { id: selectedUserId } = req.params;
+
+        // console.log(userId, selectedUserId)
+
         if (!selectedUserId)
             return res.json({ success: false, message: "selected user required" })
 
         const message = await Message.find({
             $or: [
                 { sender: userId, reciever: selectedUserId }
-                || { sender: selectedUserId, reciever: userId }
+                , { sender: selectedUserId, reciever: userId }
             ]
         })
 
+
+
+        for (let msg of message) {
+            const diff = Math.floor(Date.now - new Date(msg.createdAt) / (1000 * 60 * 60))
+            if (diff > 3) {
+                await Message.findByIdAndDelete(msg._id)
+            }
+        }
+        //console.log(message)
+        // console.log(message.length)
+
+
+
         await Message.updateMany({ sender: selectedUserId, reciever: userId }, { seen: true })
 
-        res.json({ success: false, message })
+        res.json({ success: true, message })
 
     } catch (err) {
         res.json({ message: err.message, success: false })
@@ -85,9 +101,10 @@ export const sendMessage = async (req, res) => {
         const { id: reciever } = req.params
         const { text, image } = req.body
 
+
         let imageurl;
 
-        if (!image) {
+        if (image) {
             let upload = await cloudinary.uploader.upload(image)
             imageurl = upload.secure_url
         }

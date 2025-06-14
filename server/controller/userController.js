@@ -15,9 +15,10 @@ export const Register = async (req, res) => {
         if (!name || !email || !password || !bio)
             return res.status(500).json({ message: "All detaul are requried", success: false })
 
-        const user = await User.findOne({ email })
+        const user = await User.findOne({ email }).select("-password")
+      
         if (user)
-            return res.status(500).json({ message: "email all ready exist", success: false })
+            return res.json({ message: "email all ready exist", success: false })
 
         //hashpassword
         const hashPassword = await bcrypt.hash(password, 10)
@@ -70,7 +71,6 @@ export const login = async (req, res) => {
 //chech user authenticate or not
 export const isAuthUser = async (req, res) => {
     try {
-
         res.json({ success: true, user: req.user, message: "authenticate user" })
 
     } catch (err) {
@@ -92,7 +92,6 @@ export const userUpdate = async (req, res) => {
         if (!profilePic) {
             updateUser = await User.findByIdAndUpdate(userId, { bio, name }, { new: true })
         } else {
-
             const upload = await cloudinary.uploader.upload(profilePic)
 
             updateUser = await User.findByIdAndUpdate(userId, { bio, name, profilePic: upload.secure_url }, { new: true })
@@ -101,6 +100,7 @@ export const userUpdate = async (req, res) => {
         res.json({ success: true, message: "user update", user: updateUser })
 
     } catch (err) {
+        console.log(err.message)
         res.json({ success: false, message: err.message })
 
     }

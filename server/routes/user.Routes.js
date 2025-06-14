@@ -2,6 +2,7 @@
 import express from 'express'
 import { isAuthUser, login, Register, userUpdate } from '../controller/userController.js'
 import { isAuth } from '../middleware/isAuth.js'
+import  upload  from '../utils/Claudinary.js'
 const userRouter = express.Router()
 
 userRouter.route("/register")
@@ -14,7 +15,8 @@ userRouter.route("/login")
 userRouter.route("/isAuth")
     .get(isAuth,  isAuthUser)
 
+
 userRouter.route("/user-update")
-    .put( isAuth, userUpdate)
+    .put(isAuth,  userUpdate)
 
 export default userRouter
