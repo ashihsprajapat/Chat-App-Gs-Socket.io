@@ -9,14 +9,17 @@ import { ChatContext } from '../context/ChatContext';
 
 function HomePage() {
 
-   // const { selectedUser, setSelectedUser} = useState(true)
+    // const { selectedUser, setSelectedUser} = useState(true)
 
-    const { selectedUser, setSelectedUser}= useContext(ChatContext)
+    const { selectedUser, setSelectedUser, reqSend, setReqSend } = useContext(ChatContext)
+    const { newReq } = useContext(ChatContext)
+
+    console.log("new Request is ", newReq)
 
 
     return (
         <div className=' w-full  h-screen sm:px-[15%] sm:py-[5%]' >
-            HomePage
+            {/* HomePage */}
 
             <div className={`border-2 border-gray-600 rounded-2xl h-[100%] grid grid-cols-1 
             relative backdrop-blur-xl overflow-hidden  ${selectedUser ? " md:grid-cols-[1fr_1.5fr_1fr]  xl:grid-cols-[1fr_2fr_1fr] "
@@ -24,12 +27,23 @@ function HomePage() {
                     "md:grid-cols-2"
                 }  `}>
 
-                <SideBar  /> 
+                <SideBar />
 
-                <ChatContainer  />
+                <ChatContainer />
 
-                <RightSideBar />
+                {
+                    !reqSend &&
+                    <RightSideBar />
+                }
+
+
             </div>
+            {newReq && (
+                <div>
+                    <img src={newReq.profilePic} alt="" />
+                    <p>{newReq.name}</p>
+                </div>
+            )}
         </div>
     )
 }

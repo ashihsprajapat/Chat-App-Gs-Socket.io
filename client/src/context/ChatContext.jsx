@@ -21,6 +21,13 @@ export const ChatProvider = ({ children }) => {
     const [unseenMessage, setUnseenMessage] = useState({}) // {userId: unseenmessage}
     const [selectedUserData, setSelectedUserdata] = useState(null)
 
+    const [skeleton, setSkeleton] = useState(false)
+
+    const [reqSend, setReqSend] = useState(null)
+
+    const [newReq, setNewRequest] = useState(null)
+
+    const [setting, setSetting] = useState(null)
 
 
     //function to get all users for sidebar
@@ -28,7 +35,7 @@ export const ChatProvider = ({ children }) => {
         try {
 
             const { data } = await axios.get('/api/message/getUsersForSidebar')
-           // console.log(data)
+            // console.log(data)
             if (data.success) {
                 setSideBarUsers(data.users)
                 setUnseenMessage(data.unSeenMessage)
@@ -45,14 +52,23 @@ export const ChatProvider = ({ children }) => {
     //function to get message for  Selected  users
     const getMessageSelectedUser = async (userId) => {
         try {
+            setMessage([])
+            setSkeleton(true)
+
             const { data } = await axios.get(`/api/message/${userId}`)
-            
+
             if (data.success) {
+                setSkeleton(false)
+
                 setMessage(data.message)
+                setReqSend(null)
+            }
+
+            if (data.notInConnection) {
+                setReqSend(userId)
             }
 
         } catch (e) {
-            console.log(e.message)
             toast.success(e.message)
         }
     }
@@ -93,6 +109,16 @@ export const ChatProvider = ({ children }) => {
                 }))
             }
         })
+
+        socket.on("acceptRequest", (user) => {
+            console.log("req come for acceptReuest", user)
+            toast.success("request accepted")
+        })
+
+        socket.on("sendRequest", (user) => {
+            console.log("req come for sendReuest", user)
+            setNewRequest(user)
+        })
     }
 
     //function to unsubscribe from message
@@ -101,10 +127,72 @@ export const ChatProvider = ({ children }) => {
             socket.off("newMessage")
     }
 
+
+    //send request to selected user if not in connections
+    const sendRequest = async (userId) => {
+        try {
+
+            const { data } = await axios.post(`/api/user/sendReuqest/${userId}`)
+            console.log("res ponse after sending data", data)
+            if (data.success) {
+                toast.success("req sending to user")
+            }
+            else {
+                toast.error(data.message)
+            }
+
+        } catch (err) {
+
+        }
+    }
+
+
+    //accept request  from 
+    const acceptRequest = async (accept, id) => {
+        try {
+
+            const { data } = await axios.post(`/api/user/acceptRequest/${id}`, { accept })
+            console.log("req accept response is ", data)
+
+            if (data.success) {
+                //toast.success("req accepted")
+            } else {
+                toast.error(data.message)
+            }
+
+        } catch (err) {
+
+        }
+    }
+
+
+    // update all message appearence and clear chat
+    const messageAppearence = async (appearence) => {
+        try {
+            const { data } = await axios.put(`/api/user/message-appearnce/${selectedUser._id}`, { appearence })
+            console.log("response for message appearence ")
+
+
+            if (data.success) {
+                setSetting(null)
+                toast.success(data.message)
+            } else {
+                toast.error(data.message)
+            }
+
+        } catch (err) {
+
+        }
+    }
+
+
+
+
+
     useEffect(() => {
         subscribeToMessage()
         return () => unsubscribeFromMessage()
-    }, [socket, selectedUser,setSelectedUser])
+    }, [socket, selectedUser, setSelectedUser])
 
 
 
@@ -115,7 +203,12 @@ export const ChatProvider = ({ children }) => {
         message, setMessage,
         sendMessage,
         unseenMessage, setUnseenMessage,
-        getMessageSelectedUser
+        getMessageSelectedUser,
+        reqSend, setReqSend,
+        sendRequest,
+        acceptRequest,
+        setting, setSetting,
+        skeleton, setSkeleton
 
     }
     return (

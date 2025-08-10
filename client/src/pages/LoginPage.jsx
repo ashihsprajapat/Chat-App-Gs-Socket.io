@@ -13,13 +13,12 @@ function LoginPage() {
     const [bio, setBio] = useState("");
     const [isDataSubmitted, setIsDataSubmitted] = useState(false);
 
-    const { login,logout } = useContext(AuthContext)
+
+
+    const { login, logout, isLoading, setIsLoading } = useContext(AuthContext)
 
     const onSubmitHandler = (e) => {
         e.preventDefault();
-        console.log(name, email, password)
-
-
 
 
         if (state === 'register' && !isDataSubmitted) {
@@ -100,10 +99,10 @@ function LoginPage() {
                     )
                 }
                 <button
-
+                    disabled={isLoading}
                     type="submit"
                     className="bg-indigo-500 hover:bg-indigo-600 transition-all text-white w-full py-2 rounded-md cursor-pointer">
-                    {state === "register" ? "Create Account" : "Login"}
+                    {isLoading ? ("Loading....") : state === "register" ? "Create Account" : "Login"}
                 </button>
 
                 <div className='flex gap-5 ml-2'>

@@ -11,7 +11,7 @@ export const getUsersForSidebar = async (req, res) => {
 
         const userId = req.user._id;
 
-        const filterUser = await User.find({ _id: { $ne: userId } })
+        const filterUser = await User.find({ _id: { $ne: userId } }).select("-password")
 
         let unSeenMessageCount = await Message.find({ reciever: userId, seen: false })
 
@@ -29,9 +29,10 @@ export const getUsersForSidebar = async (req, res) => {
         res.json({
             users: filterUser, unSeenMessage, message: "find all user success", success: true,
             allUnseenMessageCount: unSeenMessageCount,
-        }).select("-password")
+        })
 
     } catch (err) {
+        console.log(err.message)
         res.json({ message: err.message, success: false })
     }
 
@@ -42,12 +43,19 @@ export const getMessage = async (req, res) => {
     try {
 
         const userId = req.user._id
+        const user = req.user
         const { id: selectedUserId } = req.params;
-
-        // console.log(userId, selectedUserId)
 
         if (!selectedUserId)
             return res.json({ success: false, message: "selected user required" })
+
+        const has = user.connections.has(selectedUserId)
+
+        if (!has) {
+            return res.json({ messagae: "this is not in your connections", success: false, notInConnection: true })
+        }
+
+        // console.log(userId, selectedUserId)
 
         const message = await Message.find({
             $or: [
@@ -56,17 +64,18 @@ export const getMessage = async (req, res) => {
             ]
         })
 
-
+        const now = Date.now();
 
         for (let msg of message) {
-            const diff = Math.floor(Date.now - new Date(msg.createdAt) / (1000 * 60 * 60))
-            if (diff > 3) {
+            const diff = Math.floor((now - new Date(msg.createdAt).getTime()) / (1000 * 60 * 60))
+            if (diff > 168) {
                 await Message.findByIdAndDelete(msg._id)
             }
         }
         //console.log(message)
         // console.log(message.length)
 
+        console.log("all message", message)
 
 
         await Message.updateMany({ sender: selectedUserId, reciever: userId }, { seen: true })
@@ -74,6 +83,7 @@ export const getMessage = async (req, res) => {
         res.json({ success: true, message })
 
     } catch (err) {
+        console.log(err)
         res.json({ message: err.message, success: false })
     }
 

@@ -1,7 +1,6 @@
 import { useState, createContext, useEffect, } from "react"
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL
-console.log(backendUrl)
 
 import axios from "axios";
 import toast from "react-hot-toast";
@@ -19,6 +18,9 @@ export const AuthPorvider = ({ children }) => {
     const [onlineUser, setOnlineUser] = useState([])
     const [token, setToken] = useState(localStorage.getItem("chat_app_GS_Token"))
     const [socket, setSocket] = useState(null)
+
+
+    const [isLoading, setIsLoading] = useState(false);
 
     //check if user is authenticate or not  set the user data and connect the scoket
 
@@ -52,10 +54,10 @@ export const AuthPorvider = ({ children }) => {
     const login = async (state, credentials) => { //in this state can be login or register
         //credentials are body for login and register
         try {
-            console.log(credentials)
 
+            setIsLoading(true)
             const { data } = await axios.post(`/api/user/${state}`, credentials)
-            console.log(data)
+
 
             if (data.success) {
                 setAuthUser(data.user)
@@ -69,6 +71,7 @@ export const AuthPorvider = ({ children }) => {
                 toast.error(data.message)
             }
 
+            setIsLoading(false)
         } catch (err) {
             toast.error(err.message)
         }
@@ -145,12 +148,14 @@ export const AuthPorvider = ({ children }) => {
     const value = {
         axios,
         authUser,
-        onlineUser,setOnlineUser,
+        onlineUser, setOnlineUser,
         socket,
         login,
         updateProfile,
         logout,
-        navigate
+        navigate,
+        isLoading, setIsLoading,
+        token, setToken
     }
 
     return (

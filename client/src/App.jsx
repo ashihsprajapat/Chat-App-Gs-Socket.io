@@ -10,6 +10,7 @@ import Footer from './components/Footer'
 import { Toaster } from 'react-hot-toast'
 import { AuthContext } from './context/AuthContext'
 import ProfilePage from './pages/ProfilePage';
+import AllRequests from './pages/AllRequests'
 
 function App() {
   const [count, setCount] = useState(0)
@@ -29,6 +30,8 @@ function App() {
           <Route path='/' element={authUser ? <HomePage /> : <Navigate to={"/login"} />} />
           <Route path='/profile' element={authUser ? <ProfilePage /> : <Navigate to={"/login"} />} />
           <Route path='/login' element={!authUser ? <LoginPage /> : <Navigate to={"/"} />} />
+          <Route path='/all-request' element={<AllRequests />} />
+
         </Routes>
 
         <Toaster

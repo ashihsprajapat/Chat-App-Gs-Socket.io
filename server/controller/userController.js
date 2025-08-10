@@ -4,6 +4,7 @@ import bcrypt from 'bcrypt'
 import { tokenGenerator } from "../utils/tokenGenerate.js";
 import cloudinary from "../utils/Claudinary.js";
 
+import { io } from "../server.js";
 
 //user register function
 export const Register = async (req, res) => {
@@ -16,7 +17,7 @@ export const Register = async (req, res) => {
             return res.status(500).json({ message: "All detaul are requried", success: false })
 
         const user = await User.findOne({ email }).select("-password")
-      
+
         if (user)
             return res.json({ message: "email all ready exist", success: false })
 
@@ -106,4 +107,117 @@ export const userUpdate = async (req, res) => {
     }
 
 
+}
+
+
+// send request for accepting in connections 
+export const sendRequest = async (req, res) => {
+
+    try {
+
+        const user = req.user
+
+        const { id: selectedUserId } = req.params;
+
+        const selectedUser = await User.findById(selectedUserId).select("-password")
+
+        const allReadySendReq = selectedUser.requests.some((userId) => userId.toString() === user._id)
+
+        if (!allReadySendReq) {
+
+            selectedUser.requests.push(user._id)
+            await selectedUser.save()
+
+            //await User.findByIdAndUpdate(selectedUserId, { requests: [...selectedUser.requests, user.id] })
+
+            io.to(selectedUserId).emit("sendRequest", user)
+
+            res.json({ message: "request sending", success: true })
+        } else {
+            res.json({ message: "already send message", success: true })
+        }
+
+
+
+    } catch (err) {
+        console.log(err.message)
+        res.json({ message: err.message, success: false })
+    }
+}
+
+
+//accepte request for getting request 
+export const acceptingRequest = async (req, res) => {
+    try {
+
+        const user = req.user
+
+        const { id: reqUserId } = req.params;
+
+        const reqUser = await User.findById(reqUserId).select('-password')
+
+        const { accept } = req.body;
+        console.log(reqUserId)
+        console.log(user._id.toString())
+
+        const userConnections=new Map(user.connections  )
+        userConnections.set(reqUserId, "7".toString())
+        const requserConntions= new Map(reqUser.connections )
+        requserConntions.set(user._id, "7")
+
+        if (accept) {
+            await User.findByIdAndUpdate(user._id, { connections: userConnections })
+            await User.findByIdAndUpdate(reqUserId, { connections: requserConntions })
+
+            io.to(reqUserId).emit("acceptRequest", user)
+        }
+
+        user.requests = user.requests.filter((id) => id.toString() !== reqUserId);
+
+        await user.save()
+
+        res.json({ message: `req is ${accept}`, success: true })
+
+    } catch (err) {
+        console.log("err occur in accepting request", err)
+        res.json({ messagae: err.messagae, success: false })
+    }
+}
+
+
+//get all request users 
+export const getAllRequestUser = async (req, res) => {
+    try {
+        const { id } = req.params
+
+        const user = await User.findById(id).populate("requests").select("-password")
+
+        //console.log(user)
+        res.json({ message: 'all request users', allRequestUsers: user.requests, success: true })
+
+    } catch (err) {
+        console.log(err.messagae)
+        res.json({ message: err.messagae, success: false })
+    }
+}
+
+
+//update message appearnce  in connections 
+export const updateMessageApperence= async(req,res)=>{
+    try{
+        const user= req.user
+        const {id}= req.params
+        const {appearence}= req.body
+        
+        const connections=new Map( user.connections)
+        connections.set(id, appearence.toString())
+
+        await User.findByIdAndUpdate(user._id, connections)
+
+        res.json({success:true, message:"messagae appearence update"})
+
+    }catch(err){
+        console.log(err.messagae)
+        res.json({success:false, messagae:err.messagae})
+    }
 }

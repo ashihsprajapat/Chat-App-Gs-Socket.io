@@ -7,7 +7,7 @@ import { ChatContext } from '../context/ChatContext';
 
 function SideBar() { //{ selectedUser, setSelectedUser }
 
-    const { logout, onlineUser } = useContext(AuthContext)
+    const { logout, onlineUser,token,authUser } = useContext(AuthContext)
     // console.log("online user are", onlineUser)
 
     const navigate = useNavigate();
@@ -42,7 +42,7 @@ function SideBar() { //{ selectedUser, setSelectedUser }
         }
 
         setFilteredUsers(filtered);
-    }, [query, showAllOnline, onlineUser, sideBarUsers]);
+    }, [query, showAllOnline,token, onlineUser, sideBarUsers]);
 
 
 
@@ -75,6 +75,9 @@ function SideBar() { //{ selectedUser, setSelectedUser }
                             <hr className='my-2 border-t border-gray-500' />
                             <p className='cursor-pointer text-sm'
                                 onClick={logout}> Logout</p>
+                                <hr className='my-2 border-t border-gray-500' />
+                            <p className='cursor-pointer text-sm'
+                                onClick={() => (navigate("/all-request"))}> All Request</p>
 
                         </div>
                     </div>
