@@ -4,6 +4,7 @@ import React, { useContext, useEffect, useRef, useState } from 'react'
 import assets from '../assets/assets'
 import { AuthContext } from '../context/AuthContext';
 import { ChatContext } from '../context/ChatContext';
+import { X } from 'lucide-react';
 
 function ChatContainer() {
 
@@ -244,8 +245,34 @@ function ChatContainer() {
 
 
                                     {/* bottom area text input */}
+
+
+                                    {
+                                        image && (
+                                            <div className="absolute bottom-[70px] left-0 right-0 flex justify-left">
+
+                                                <div className="relative w-[200px]">
+                                                    <button
+                                                        onClick={() => setImage(null)}
+                                                        className="absolute -top-2 -right-2 p-1 bg-gray-800 hover:bg-gray-700 rounded-full cursor-pointer transition-colors z-10"
+                                                    >
+                                                        <X className="w-4 h-4 text-white" />
+                                                    </button>
+                                                    <img
+                                                        src={URL.createObjectURL(image)}
+                                                        alt="Selected image"
+                                                        className="w-full h-auto max-h-[130px] rounded-lg object-cover shadow-lg"
+                                                    />
+                                                </div>
+                                            </div>
+                                        )
+                                    }
+
                                     <div className='absolute  bottom-0  left-0 right-0 flex items-center gap-3 p-3'>
-                                        <div className='flex-1 flex bg-gray-100/20 gap-3 items-center px-3 rounded-full'>
+
+
+
+                                        <div className='flex-1  flex bg-gray-100/20 gap-3 items-center px-3 rounded-full'>
                                             <input type="text" placeholder='Send a message'
                                                 className='flex-1 text-sm p-3   border-none rounded-lg outline-none text-white 
                     placeholder-gray-400  bg-transparent'
@@ -263,6 +290,9 @@ function ChatContainer() {
                                         <img src={assets.send_button} alt="" className='w-7 cursor-pointer'
                                             onClick={(e) => onSendHendler(e)} />
                                     </div>
+
+
+
 
                                 </>
 
