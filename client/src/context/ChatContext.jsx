@@ -21,7 +21,11 @@ export const ChatProvider = ({ children }) => {
     const [unseenMessage, setUnseenMessage] = useState({}) // {userId: unseenmessage}
     const [selectedUserData, setSelectedUserdata] = useState(null)
 
-    const [skeleton, setSkeleton] = useState(false)
+    // Skeleton state to show loading state when changing selected user or sending messages
+    const [skeleton, setSkeleton] = useState({
+        loading: false,
+        trigger: null // tracks what triggered the skeleton - 'user' or 'message'
+    })
 
     const [reqSend, setReqSend] = useState(null)
 
@@ -53,7 +57,7 @@ export const ChatProvider = ({ children }) => {
     const getMessageSelectedUser = async (userId) => {
         try {
             setMessage([])
-            setSkeleton(true)
+
 
             const { data } = await axios.get(`/api/message/${userId}`)
 
@@ -77,17 +81,17 @@ export const ChatProvider = ({ children }) => {
     const sendMessage = async (messageData) => {
         try {
             const { data } = await axios.post(`/api/message/send/${selectedUser._id}`, messageData)
-            console.log("res for messsge sending", data)
+            
             if (data.success) {
                 setMessage((prev) => ([...prev, data.newMessage]))
-                getMessageSelectedUser(selectedUser._id);
-            } else
+                // No need to call getMessageSelectedUser since we already have the new message
+                // This prevents triggering skeleton loading when sending messages
+            } else {
                 toast.error(data.message)
-
+            }
         } catch (e) {
             toast.error(e.message)
         }
-
     }
 
     //function to subscribe to message for selected user

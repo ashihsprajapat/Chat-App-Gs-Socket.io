@@ -7,7 +7,7 @@ import { ChatContext } from '../context/ChatContext';
 
 function SideBar() { //{ selectedUser, setSelectedUser }
 
-    const { logout, onlineUser,token,authUser } = useContext(AuthContext)
+    const { logout, onlineUser, token, authUser, } = useContext(AuthContext)
     // console.log("online user are", onlineUser)
 
     const navigate = useNavigate();
@@ -17,12 +17,13 @@ function SideBar() { //{ selectedUser, setSelectedUser }
     const [showAllOnline, setShowOnlineUsers] = useState(false)
     const [filteredUsers, setFilteredUsers] = useState([])
 
-
+    
 
     const { sideBarUsers, getSideBarUser,
         selectedUser, setSelectedUser,
         unseenMessage, setUnseenMessage,
-        getMessageSelectedUser } = useContext(ChatContext);
+        getMessageSelectedUser,
+        skeleton, setSkeleton } = useContext(ChatContext);
 
     // console.log("side bar users are", sideBarUsers)
 
@@ -42,7 +43,7 @@ function SideBar() { //{ selectedUser, setSelectedUser }
         }
 
         setFilteredUsers(filtered);
-    }, [query, showAllOnline,token, onlineUser, sideBarUsers]);
+    }, [query, showAllOnline, token, onlineUser, sideBarUsers]);
 
 
 
@@ -75,7 +76,7 @@ function SideBar() { //{ selectedUser, setSelectedUser }
                             <hr className='my-2 border-t border-gray-500' />
                             <p className='cursor-pointer text-sm'
                                 onClick={logout}> Logout</p>
-                                <hr className='my-2 border-t border-gray-500' />
+                            <hr className='my-2 border-t border-gray-500' />
                             <p className='cursor-pointer text-sm'
                                 onClick={() => (navigate("/all-request"))}> All Request</p>
 
@@ -113,8 +114,11 @@ function SideBar() { //{ selectedUser, setSelectedUser }
                             rounded-md sm:py-1 md:py-2
                         ${selectedUser && user._id === selectedUser._id && "bg-gray-500/25  h-full w-full "}`}
                             onClick={() => {
-                                setSelectedUser(user); setUnseenMessage(prev => ({ ...prev, [user._id]: 0 }));
-                                getMessageSelectedUser(user._id)
+                                setSelectedUser(user);
+                                setUnseenMessage(prev => ({ ...prev, [user._id]: 0 }));
+                                getMessageSelectedUser(user._id);
+                                setSkeleton(true)
+
                             }}>
                             <div className='relative'>
                                 <img src={user.profilePic || assets.avatar_icon} alt="" className='w-[35px] aspect-[1/1] rounded-full ' />
