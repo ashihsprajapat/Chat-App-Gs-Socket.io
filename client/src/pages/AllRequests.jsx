@@ -5,89 +5,71 @@ import toast from 'react-hot-toast'
 import assets from '../assets/assets'
 import { ChatContext } from '../context/ChatContext'
 
-function AllRequests() {
+function AllRequests({ allRequestShow, setAllRequestShow }) {
     const { authUser, axios } = useContext(AuthContext)
 
-    const {acceptRequest}= useContext(ChatContext);
-
-    const [allRequestedUser, setAllRequestedUser] = useState(null)
-
-    const getAllRequestedUsers = async () => {
-        if (!authUser)
-            return
-        const { data } = await axios.get(`/api/user/get-request/${authUser._id}`)
-
-        if (data.success) {
-            setAllRequestedUser(data.allRequestUsers)
-        }
-    }
-
+    const { acceptRequest,getAllRequestedUsers,allRequestedUser, setAllRequestedUser } = useContext(ChatContext);
 
     useEffect(() => {
-        getAllRequestedUsers()
+        if(authUser)
+            getAllRequestedUsers()
     }, [authUser])
 
 
-    
+
 
 
     return (
-        <div className=' bg-cover    min-h-screen bg-no-repeat flex items-center  text-white  '>
+        <>
 
-            <div className="flex-1  flex flex-col ">
-                <div className="w-full md:p-10 p-4">
-                    <h2 className="pb-4 text-lg font-medium">All Reuests</h2>
-                    <div className="flex flex-col items-center max-w-4xl w-full overflow-hidden rounded-md bg-white border border-gray-500/20">
-                        <table className="md:table-auto table-fixed w-full overflow-hidden">
-                            <thead className="text-gray-900 text-sm text-left">
-                                <tr>
-                                    <th className="px-4 py-3 font-semibold truncate">Profile pic</th>
-                                    <th className="px-4 py-3 font-semibold truncate">Name</th>
-                                    <th className="  px-4 py-3 font-semibold truncate hidden md:table-cell">Email</th>
-                                    <th className="px-4  py-3 font-semibold truncate hidden md:table-cell"> Bio</th>
-                                    <th className="px-4 py-3 font-semibold truncate">Accept</th>
-                                </tr>
-                            </thead>
-                            <tbody className="text-sm text-gray-500">
-                                {
-                                    allRequestedUser ?
-                                        (allRequestedUser.map((user, idx) => (
-                                            <tr key={idx} className="border-t border-gray-500/20">
-                                                <td>
-                                                    <img className='w-10 cursor-pointer rounded-full mx-4 h-10' src={user.profilePic || assets.avatar_icon} alt="" />
-                                                </td>
-                                                <td className="md:px-4 pl-2 md:pl-4 py-3 flex items-center space-x-3 truncate">
-                                                    <div className=" p-2">
-                                                        <p className='text-md'>{user.name}</p>
-                                                    </div>
-                                                </td>
-                                                <td className="px-4  py-3 hidden md:table-cell">{user.email}</td>
-                                                <td className="px-4  py-3 hidden md:table-cell">${user.bio}</td>
-                                                <td className="px-4 py-3">
-                                                    <label className="relative inline-flex items-center cursor-pointer text-gray-900 gap-3">
-                                                        <input type="checkbox" className="sr-only peer" onChange={(e) => { acceptRequest(true, user._id) }} />
-                                                        <div className="w-12 h-7 bg-slate-300 rounded-full peer peer-checked:bg-blue-600 transition-colors duration-200"></div>
-                                                        <span className="dot absolute left-1 top-1 w-5 h-5 bg-white rounded-full transition-transform duration-200 ease-in-out peer-checked:translate-x-5"></span>
-                                                    </label>
-                                                </td>
-                                            </tr>
-                                        )))
-                                        : (
-                                            <tr>
+            <div className="fixed bottom-4 right-4 z-50">
+                <button
+                    onClick={() => setAllRequestShow(!allRequestShow)}
+                    className="bg-gray-600 hover:bg-gray-700 text-white rounded-full p-3 flex items-center gap-2 shadow-lg transition-all"
+                >
+                    <svg className={`w-6 h-6 transform transition-transform ${allRequestShow ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                    <span className="font-medium">Friend Requests</span>
+                </button>
 
-                                                <td>No request </td>
-                                            </tr>
-                                        )
-
-                                }
-                            </tbody>
-                        </table>
+                {allRequestShow && (
+                    <div className="absolute bottom-16 right-0 w-80 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden">
+                        <div className="p-4 bg-gray-600 text-white font-semibold">
+                            Pending Requests
+                        </div>
+                        <div className="max-h-96 overflow-y-auto">
+                            {allRequestedUser.map((user, idx) => (
+                                <div key={idx} className="p-3 border-b hover:bg-gray-50 flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <img
+                                            src={user.profilePic || assets.avatar_icon}
+                                            alt={user.name}
+                                            className="w-10 h-10 rounded-full object-cover"
+                                        />
+                                        <span className="font-medium text-gray-800">{user.name}</span>
+                                    </div>
+                                    <button
+                                        onClick={() => acceptRequest(true, user._id)}
+                                        className="px-3 py-1 bg-gray-600 text-white text-sm rounded hover:bg-gray-700 transition-colors"
+                                    >
+                                        Accept
+                                    </button>
+                                </div>
+                            ))}
+                            {allRequestedUser.length === 0 && (
+                                <div className="p-4 text-center text-gray-500">
+                                    No pending requests
+                                </div>
+                            )}
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
 
-        </div>
+        </>
     )
+
 }
 
 export default AllRequests

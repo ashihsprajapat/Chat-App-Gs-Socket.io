@@ -17,7 +17,7 @@ function SideBar() { //{ selectedUser, setSelectedUser }
     const [showAllOnline, setShowOnlineUsers] = useState(false)
     const [filteredUsers, setFilteredUsers] = useState([])
 
-    
+
 
     const { sideBarUsers, getSideBarUser,
         selectedUser, setSelectedUser,
@@ -76,18 +76,16 @@ function SideBar() { //{ selectedUser, setSelectedUser }
                             <hr className='my-2 border-t border-gray-500' />
                             <p className='cursor-pointer text-sm'
                                 onClick={logout}> Logout</p>
-                            <hr className='my-2 border-t border-gray-500' />
-                            <p className='cursor-pointer text-sm'
-                                onClick={() => (navigate("/all-request"))}> All Request</p>
+
 
                         </div>
                     </div>
                 </div>
 
                 {/* searchBar */}
-                <div class="flex items-center gap-2 border pl-4 gap-2 bg-white border-gray-500/30 h-[46px] rounded-full overflow-hidden max-w-md w-full">
+                <div className="flex items-center gap-2 border pl-4 gap-2 bg-white border-gray-500/30 h-[46px] rounded-full overflow-hidden max-w-md w-full">
                     <img src={assets.search_icon} alt="" className='invert w-3' />
-                    <input type="text" placeholder="Search User..." class="w-full h-full outline-none text-gray-500 placeholder-gray-500 text-sm"
+                    <input type="text" placeholder="Search User..." className="w-full h-full outline-none text-gray-500 placeholder-gray-500 text-sm"
                         onChange={(e) => setQuery(e.target.value)} />
                 </div>
 

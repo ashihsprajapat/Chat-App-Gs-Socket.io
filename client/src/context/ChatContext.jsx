@@ -31,6 +31,9 @@ export const ChatProvider = ({ children }) => {
 
     const [newReq, setNewRequest] = useState(null)
 
+    const [allRequestedUser, setAllRequestedUser] = useState([])
+    console.log("all requesteduser are", allRequestedUser)
+
     const [setting, setSetting] = useState(null)
 
 
@@ -81,7 +84,7 @@ export const ChatProvider = ({ children }) => {
     const sendMessage = async (messageData) => {
         try {
             const { data } = await axios.post(`/api/message/send/${selectedUser._id}`, messageData)
-            
+
             if (data.success) {
                 setMessage((prev) => ([...prev, data.newMessage]))
                 // No need to call getMessageSelectedUser since we already have the new message
@@ -98,6 +101,8 @@ export const ChatProvider = ({ children }) => {
     const subscribeToMessage = async (messageId) => {
         if (!socket)
             return
+
+        socket.emit("join", authUser._id)
 
         socket.on("newMessage", (newMessage) => {
             if (selectedUser && newMessage.sender === selectedUser._id) {
@@ -120,7 +125,8 @@ export const ChatProvider = ({ children }) => {
         })
 
         socket.on("sendRequest", (user) => {
-            console.log("req come for sendReuest", user)
+            console.log("req come for sendReuest socket.io tirgger", user)
+            getAllRequestedUsers();
             setNewRequest(user)
         })
     }
@@ -146,7 +152,18 @@ export const ChatProvider = ({ children }) => {
             }
 
         } catch (err) {
+            console.log(err)
+        }
+    }
 
+    //get all request user
+    const getAllRequestedUsers = async () => {
+        if (!authUser)
+            return
+        const { data } = await axios.get(`/api/user/get-request/${authUser._id}`)
+
+        if (data.success) {
+            setAllRequestedUser(data.allRequestUsers)
         }
     }
 
@@ -190,6 +207,10 @@ export const ChatProvider = ({ children }) => {
     }
 
 
+    useEffect(() => {
+        if (authUser)
+            getSideBarUser()
+    }, [authUser])
 
 
 
@@ -212,7 +233,9 @@ export const ChatProvider = ({ children }) => {
         sendRequest,
         acceptRequest,
         setting, setSetting,
-        skeleton, setSkeleton
+        skeleton, setSkeleton,
+        getAllRequestedUsers,
+        allRequestedUser, setAllRequestedUser
 
     }
     return (

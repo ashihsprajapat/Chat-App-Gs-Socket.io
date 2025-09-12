@@ -75,7 +75,7 @@ export const getMessage = async (req, res) => {
         //console.log(message)
         // console.log(message.length)
 
-        console.log("all message", message)
+       // console.log("all message", message)
 
 
         await Message.updateMany({ sender: selectedUserId, reciever: userId }, { seen: true })

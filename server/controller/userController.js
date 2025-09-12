@@ -4,7 +4,7 @@ import bcrypt from 'bcrypt'
 import { tokenGenerator } from "../utils/tokenGenerate.js";
 import cloudinary from "../utils/Claudinary.js";
 
-import { io } from "../server.js";
+import { io, userSocketMap } from "../server.js";
 
 //user register function
 export const Register = async (req, res) => {
@@ -122,18 +122,25 @@ export const sendRequest = async (req, res) => {
         const selectedUser = await User.findById(selectedUserId).select("-password")
 
         const allReadySendReq = selectedUser.requests.some((userId) => userId.toString() === user._id)
-
+        
         if (!allReadySendReq) {
 
             selectedUser.requests.push(user._id)
             await selectedUser.save()
 
-            //await User.findByIdAndUpdate(selectedUserId, { requests: [...selectedUser.requests, user.id] })
 
-            io.to(selectedUserId).emit("sendRequest", user)
+            const socketId = userSocketMap[selectedUserId];
+            if (socketId) {
+
+                io.to(socketId).emit("sendRequest", {
+                    from: user._id,
+                    requests: selectedUser.requests
+                })
+            }
 
             res.json({ message: "request sending", success: true })
         } else {
+            console.log("req uest already in request of selected user")
             res.json({ message: "already send message", success: true })
         }
 
@@ -160,9 +167,9 @@ export const acceptingRequest = async (req, res) => {
         console.log(reqUserId)
         console.log(user._id.toString())
 
-        const userConnections=new Map(user.connections  )
+        const userConnections = new Map(user.connections)
         userConnections.set(reqUserId, "7".toString())
-        const requserConntions= new Map(reqUser.connections )
+        const requserConntions = new Map(reqUser.connections)
         requserConntions.set(user._id, "7")
 
         if (accept) {
@@ -203,21 +210,21 @@ export const getAllRequestUser = async (req, res) => {
 
 
 //update message appearnce  in connections 
-export const updateMessageApperence= async(req,res)=>{
-    try{
-        const user= req.user
-        const {id}= req.params
-        const {appearence}= req.body
-        
-        const connections=new Map( user.connections)
+export const updateMessageApperence = async (req, res) => {
+    try {
+        const user = req.user
+        const { id } = req.params
+        const { appearence } = req.body
+
+        const connections = new Map(user.connections)
         connections.set(id, appearence.toString())
 
         await User.findByIdAndUpdate(user._id, connections)
 
-        res.json({success:true, message:"messagae appearence update"})
+        res.json({ success: true, message: "messagae appearence update" })
 
-    }catch(err){
+    } catch (err) {
         console.log(err.messagae)
-        res.json({success:false, messagae:err.messagae})
+        res.json({ success: false, messagae: err.messagae })
     }
 }

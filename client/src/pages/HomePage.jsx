@@ -6,15 +6,17 @@ import SideBar from '../components/SideBar'
 import RightSideBar from '../components/RightSideBar'
 import assets from './../assets/assets';
 import { ChatContext } from '../context/ChatContext';
+import AllRequests from './AllRequests';
 
 function HomePage() {
 
     // const { selectedUser, setSelectedUser} = useState(true)
 
+    const [allRequestShow, setAllRequestShow] = useState(false);
+
     const { selectedUser, setSelectedUser, reqSend, setReqSend } = useContext(ChatContext)
     const { newReq } = useContext(ChatContext)
 
-    console.log("new Request is ", newReq)
 
 
     return (
@@ -44,6 +46,11 @@ function HomePage() {
                     <p>{newReq.name}</p>
                 </div>
             )}
+
+
+            <AllRequests allRequestShow={allRequestShow} setAllRequestShow={setAllRequestShow} />
+
+
         </div>
     )
 }
