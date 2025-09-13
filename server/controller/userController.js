@@ -121,8 +121,10 @@ export const sendRequest = async (req, res) => {
 
         const selectedUser = await User.findById(selectedUserId).select("-password")
 
-        const allReadySendReq = selectedUser.requests.some((userId) => userId.toString() === user._id)
-        
+        const allReadySendReq = Array.isArray(selectedUser.requests) && selectedUser.requests.length > 0
+            ? selectedUser.requests.some((userId) => userId.toString() === user._id.toString())
+            : false;
+
         if (!allReadySendReq) {
 
             selectedUser.requests.push(user._id)
@@ -140,8 +142,8 @@ export const sendRequest = async (req, res) => {
 
             res.json({ message: "request sending", success: true })
         } else {
-            console.log("req uest already in request of selected user")
-            res.json({ message: "already send message", success: true })
+            res.json({ message: "already  request sended", success: true })
+
         }
 
 
@@ -164,19 +166,29 @@ export const acceptingRequest = async (req, res) => {
         const reqUser = await User.findById(reqUserId).select('-password')
 
         const { accept } = req.body;
-        console.log(reqUserId)
-        console.log(user._id.toString())
-
-        const userConnections = new Map(user.connections)
-        userConnections.set(reqUserId, "7".toString())
-        const requserConntions = new Map(reqUser.connections)
-        requserConntions.set(user._id, "7")
 
         if (accept) {
+
+            const userConnections = new Map(user.connections)
+            userConnections.set(reqUserId, "7".toString())
+            const requserConntions = new Map(reqUser.connections)
+            requserConntions.set(user._id, "7")
+
+
             await User.findByIdAndUpdate(user._id, { connections: userConnections })
             await User.findByIdAndUpdate(reqUserId, { connections: requserConntions })
 
-            io.to(reqUserId).emit("acceptRequest", user)
+
+
+
+        }
+
+        const socketId = userSocketMap[reqUserId];
+        if (socketId) {
+            io.to(socketId).emit("acceptRequest", {
+                user: user,
+                accepted: accept
+            });
         }
 
         user.requests = user.requests.filter((id) => id.toString() !== reqUserId);
@@ -227,4 +239,29 @@ export const updateMessageApperence = async (req, res) => {
         console.log(err.messagae)
         res.json({ success: false, messagae: err.messagae })
     }
+}
+
+
+export const updateConnectionDate = async (req, res) => {
+    try {
+
+
+        const { user } = req;
+        const { id: selectedId } = req.params;
+        const days = req.body.days;
+        const connections = new Map(user.connections);
+        connections.set(selectedId, days.toString())
+
+        await user.findByIdAndUpdate(user._id, { connections: connections })
+
+        console.log("user connection is updaet", user.connections)
+
+        res.send({ message: "connection date update", success: true, user })
+
+    }
+    catch (err) {
+        console.log(err.message)
+        res.json({ success: false, messagae: err.messagae })
+    }
+
 }

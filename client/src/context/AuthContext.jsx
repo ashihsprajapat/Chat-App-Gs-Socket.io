@@ -113,6 +113,24 @@ export const AuthPorvider = ({ children }) => {
         }
     }
 
+    //update user connetions data
+    const updateUserConnections = async (days, id) => {
+        try {
+
+            const {data}= await axios.post(`/api/user//update-connection/${id}`, {days})
+            console.log("changing day of selected user", data)
+            if(data.success){
+                toast.success(data.message)
+                setAuthUser(data.user)
+
+            }
+
+        } catch (err) {
+            console.log(err)
+            toast.error(err.message)
+        }
+    }
+
     //connect socket function to handle socket connection and online users updates
     const connectSocket = (userData) => {
         if (!userData || socket?.connected)
@@ -155,7 +173,8 @@ export const AuthPorvider = ({ children }) => {
         logout,
         navigate,
         isLoading, setIsLoading,
-        token, setToken
+        token, setToken,
+        updateUserConnections
     }
 
     return (

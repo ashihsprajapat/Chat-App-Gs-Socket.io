@@ -55,13 +55,20 @@ export const getMessage = async (req, res) => {
             return res.json({ messagae: "this is not in your connections", success: false, notInConnection: true })
         }
 
+        const days = user.connections.get(selectedUserId)
+
+const beforeDateMessage = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+
         // console.log(userId, selectedUserId)
 
         const message = await Message.find({
             $or: [
                 { sender: userId, reciever: selectedUserId }
                 , { sender: selectedUserId, reciever: userId }
-            ]
+            ],
+            createdAt: { $gte: beforeDateMessage }
+
         })
 
         const now = Date.now();
@@ -75,7 +82,7 @@ export const getMessage = async (req, res) => {
         //console.log(message)
         // console.log(message.length)
 
-       // console.log("all message", message)
+        // console.log("all message", message)
 
 
         await Message.updateMany({ sender: selectedUserId, reciever: userId }, { seen: true })

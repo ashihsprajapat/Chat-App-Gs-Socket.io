@@ -25,7 +25,7 @@ function AllRequests({ allRequestShow, setAllRequestShow }) {
             <div className="fixed bottom-4 right-4 z-50">
                 <button
                     onClick={() => setAllRequestShow(!allRequestShow)}
-                    className="bg-gray-600 hover:bg-gray-700 text-white rounded-full p-3 flex items-center gap-2 shadow-lg transition-all"
+                    className="bg-gray-800 hover:bg-gray-800 text-white rounded-full p-3 flex items-center gap-2 shadow-lg transition-all"
                 >
                     <svg className={`w-6 h-6 transform transition-transform ${allRequestShow ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
@@ -35,7 +35,7 @@ function AllRequests({ allRequestShow, setAllRequestShow }) {
 
                 {allRequestShow && (
                     <div className="absolute bottom-16 right-0 w-80 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden">
-                        <div className="p-4 bg-gray-600 text-white font-semibold">
+                        <div className="p-4 bg-gray-800 text-white font-semibold">
                             Pending Requests
                         </div>
                         <div className="max-h-96 overflow-y-auto">
@@ -54,6 +54,12 @@ function AllRequests({ allRequestShow, setAllRequestShow }) {
                                         className="px-3 py-1 bg-gray-600 text-white text-sm rounded hover:bg-gray-700 transition-colors"
                                     >
                                         Accept
+                                    </button>
+                                    <button
+                                        onClick={() => acceptRequest(false, user._id)}
+                                        className="ml-2 px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition-colors"
+                                    >
+                                        Reject
                                     </button>
                                 </div>
                             ))}

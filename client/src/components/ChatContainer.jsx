@@ -9,18 +9,19 @@ import { X } from 'lucide-react';
 function ChatContainer() {
 
 
-    const { authUser, onlineUser } = useContext(AuthContext)
+    const { authUser, onlineUser, updateUserConnections } = useContext(AuthContext)
 
     const {
         selectedUser, setSelectedUser,
-        unseenMessage, setUnseenMessage,
-        message, setMessage,
+        message,
         sendMessage,
-        reqSend, setReqSend,
+        reqSend,
         sendRequest,
         getMessageSelectedUser,
         setting, setSetting,
-        skeleton, setSkeleton } = useContext(ChatContext);
+        skeleton,
+        sendingReqLoading,
+        defaultDays, setDefaultDays } = useContext(ChatContext);
 
     const [text, setText] = useState("")
     const [image, setImage] = useState(null)
@@ -91,6 +92,13 @@ function ChatContainer() {
         sendRequest(selectedUser._id)
     }
 
+    //update user connection data
+    const handelUserConnectionUpdate = () => {
+        updateUserConnections(defaultDays, selectedUser._id)
+
+
+    }
+
 
     return selectedUser ? (
         <div className={`h-full  overflow-scroll relative backdrop-blur-lg w-3xl `}>
@@ -107,7 +115,7 @@ function ChatContainer() {
 
                 <img src={assets.arrow_icon} alt=""
                     className='md:hidden  max-w-7 cursor-pointer'
-                    onClick={() => { setSelectedUser(false) }} />
+                    onClick={() => { setSelectedUser(false); }} />
 
                 <img src={assets.help_icon} alt=""
                     className='max-md:hidden max-w-5 cursor-pointer'
@@ -136,8 +144,18 @@ function ChatContainer() {
                                 </button>
                                 <button
                                     onClick={handleSendRequest}
-                                    type="button" class="w-full md:w-36 h-10 rounded-md text-white bg-red-600 font-medium text-sm hover:bg-red-700 active:scale-95 transition">
-                                    Confirm
+                                    disabled={sendingReqLoading}
+                                    type="button"
+                                    className={`w-full md:w-36 h-10 rounded-md text-white bg-red-600 font-medium text-sm hover:bg-red-700 active:scale-95 transition flex items-center justify-center gap-2 ${sendingReqLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                                >
+                                    {sendingReqLoading ? (
+                                        <>
+                                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                            Sending...
+                                        </>
+                                    ) : (
+                                        'Confirm'
+                                    )}
                                 </button>
                             </div>
                         </div>
@@ -153,17 +171,35 @@ function ChatContainer() {
                                     <label for="html" name="status" class="font-medium h-14 relative hover:bg-zinc-100 flex items-center px-3 gap-3 rounded-lg has-[:checked]:text-indigo-500 has-[:checked]:bg-indigo-50 has-[:checked]:ring-indigo-300 has-[:checked]:ring-1 select-none">
 
                                         24 hourse
-                                        <input checked type="radio" name="status" class="peer/html w-4 h-4 absolute accent-current right-3" id="html" />
+                                        <input
+                                            value="24"
+                                            checked={defaultDays === "24"}
+                                            type="radio"
+                                            name="status"
+                                            className="peer/html w-4 h-4 absolute accent-current right-3"
+                                            id="html"
+                                            onChange={() => { setDefaultDays("24"); handelUserConnectionUpdate() }}
+
+
+                                        />
+
                                     </label>
 
                                     <label for="css" class="font-medium h-14 relative hover:bg-zinc-100 flex items-center px-3 gap-3 rounded-lg has-[:checked]:text-indigo-500 has-[:checked]:bg-indigo-50 has-[:checked]:ring-indigo-300 has-[:checked]:ring-1 select-none">
 
                                         7 Days
-                                        <input type="radio" name="status" class="w-4 h-4 absolute accent-current right-3" id="css" />
+                                        <input value="7" type="radio"
+                                            checked={defaultDays === "7"}
+                                            name="status" class="w-4 h-4 absolute accent-current right-3" id="css"
+                                            onChange={() => { setDefaultDays("7"); handelUserConnectionUpdate() }} />
                                     </label>
                                     <label for="javascript" name="html" class="font-medium h-14 relative hover:bg-zinc-100 flex items-center px-3 gap-3 rounded-lg has-[:checked]:text-indigo-500 has-[:checked]:bg-indigo-50 has-[:checked]:ring-indigo-300 has-[:checked]:ring-1 select-none">
                                         90 Days
-                                        <input type="radio" name="status" class="w-4 h-4 absolute accent-indigo-500 right-3" id="javascript" />
+                                        <input type="radio" value="24" name="status"
+                                            checked={defaultDays === "90"}
+                                            class="w-4 h-4 absolute accent-indigo-500 right-3" id="javascript"
+                                            onChange={() => { setDefaultDays("90"); handelUserConnectionUpdate() }} />
+
                                     </label>
 
                                     <label for="javascript" name="html" class="font-medium h-14 relative hover:bg-zinc-100 flex items-center px-3 gap-3 rounded-lg has-[:checked]:text-indigo-500 has-[:checked]:bg-indigo-50 has-[:checked]:ring-indigo-300 has-[:checked]:ring-1 select-none">

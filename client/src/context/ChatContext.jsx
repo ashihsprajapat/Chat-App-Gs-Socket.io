@@ -20,6 +20,10 @@ export const ChatProvider = ({ children }) => {
     const [selectedUser, setSelectedUser] = useState(null)
     const [unseenMessage, setUnseenMessage] = useState({}) // {userId: unseenmessage}
     const [selectedUserData, setSelectedUserdata] = useState(null)
+    const [defaultDays, setDefaultDays] = useState(1)
+    console.log("default days is", defaultDays)
+
+
 
     // Skeleton state to show loading state when changing selected user or sending messages
     const [skeleton, setSkeleton] = useState({
@@ -32,7 +36,8 @@ export const ChatProvider = ({ children }) => {
     const [newReq, setNewRequest] = useState(null)
 
     const [allRequestedUser, setAllRequestedUser] = useState([])
-    console.log("all requesteduser are", allRequestedUser)
+    const [sendingReqLoading, setSendingReqLoading] = useState(false)
+
 
     const [setting, setSetting] = useState(null)
 
@@ -119,9 +124,17 @@ export const ChatProvider = ({ children }) => {
             }
         })
 
-        socket.on("acceptRequest", (user) => {
-            console.log("req come for acceptReuest", user)
-            toast.success("request accepted")
+        socket.on("acceptRequest", (data) => {
+            console.log("Received accept request data:", data);
+            const { user, accepted } = data;
+            toast.success(`Request was ${accepted ? 'accepted' : 'rejected'}`);
+            if (user && user._id && accepted !== undefined) {
+                getMessageSelectedUser(user._id);
+                setReqSend(false);
+
+            } else {
+                console.error("Invalid user data received in acceptRequest");
+            }
         })
 
         socket.on("sendRequest", (user) => {
@@ -141,15 +154,16 @@ export const ChatProvider = ({ children }) => {
     //send request to selected user if not in connections
     const sendRequest = async (userId) => {
         try {
-
+            setSendingReqLoading``
             const { data } = await axios.post(`/api/user/sendReuqest/${userId}`)
             console.log("res ponse after sending data", data)
             if (data.success) {
-                toast.success("req sending to user")
+                toast.success(data.message)
             }
             else {
                 toast.error(data.message)
             }
+            setSendingReqLoading(false)
 
         } catch (err) {
             console.log(err)
@@ -176,9 +190,10 @@ export const ChatProvider = ({ children }) => {
             console.log("req accept response is ", data)
 
             if (data.success) {
-                //toast.success("req accepted")
-            } else {
-                toast.error(data.message)
+
+                console.log("again loading request")
+                getAllRequestedUsers();
+
             }
 
         } catch (err) {
@@ -220,6 +235,22 @@ export const ChatProvider = ({ children }) => {
     }, [socket, selectedUser, setSelectedUser])
 
 
+    //useeffect when selecteduser is changed then defaultdays is change
+    useEffect(() => {
+        if (selectedUser && authUser?.connections) {
+            // Check if connections is an array and convert to entries for Map
+            const connectionsArray = Array.isArray(authUser.connections)
+                ? authUser.connections
+                : Object.entries(authUser.connections);
+
+            const connections = new Map(connectionsArray);
+            const days = connections.get(selectedUser._id);
+            if (days) {
+                setDefaultDays(days);
+            }
+        }
+    }, [selectedUser, authUser])
+
 
     const value = {
         getSideBarUser,
@@ -235,7 +266,9 @@ export const ChatProvider = ({ children }) => {
         setting, setSetting,
         skeleton, setSkeleton,
         getAllRequestedUsers,
-        allRequestedUser, setAllRequestedUser
+        allRequestedUser, setAllRequestedUser,
+        sendingReqLoading, setSendingReqLoading,
+        defaultDays, setDefaultDays
 
     }
     return (
