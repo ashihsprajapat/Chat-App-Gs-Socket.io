@@ -46,7 +46,6 @@ function SideBar() { //{ selectedUser, setSelectedUser }
         setFilteredUsers(filtered);
     }, [query, showAllOnline, token, onlineUser, sideBarUsers]);
 
-    console.log("mode is", mode)
 
     //console.log(filteredUsers)
 
@@ -65,24 +64,12 @@ function SideBar() { //{ selectedUser, setSelectedUser }
             {/* header */}
             <div className='pb-5'>
                 <div className='flex items-center justify-between pb-5 w-full'>
-                    <div className='flex-shrink-0'>
+                    <div className={`flex-shrink-0  ${mode === 'light' && 'bg-gray-400 p-1 rounded-lg w-fit '}  `}>
                         <img src={assets.logo} alt="Logo" className='max-w-40 h-auto' />
                     </div>
                     
                     <div className='flex items-center gap-4'>
-                        <button
-                            onClick={() => setMode(p => p === 'dark' ? "light" : "dark")}
-                            className={`p-2 rounded-lg transition-all duration-300 hover:scale-110
-                                ${mode === 'dark'
-                                    ? 'bg-gray-700 hover:bg-gray-600 text-yellow-300'
-                                    : 'bg-blue-100 hover:bg-blue-200 text-orange-500'
-                                }`}
-                        >
-                            {mode === 'dark'
-                                ? <Moon className="w-5 h-5" />
-                                : <Sun className="w-5 h-5" />
-                            }
-                        </button>
+                      
 
                         <div className='py-2 group relative'>
                             <img 

@@ -21,7 +21,6 @@ export const ChatProvider = ({ children }) => {
     const [unseenMessage, setUnseenMessage] = useState({}) // {userId: unseenmessage}
     const [selectedUserData, setSelectedUserdata] = useState(null)
     const [defaultDays, setDefaultDays] = useState(1)
-    console.log("default days is", defaultDays)
 
 
 
