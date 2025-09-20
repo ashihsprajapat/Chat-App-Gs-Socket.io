@@ -19,6 +19,8 @@ export const AuthPorvider = ({ children }) => {
     const [token, setToken] = useState(localStorage.getItem("chat_app_GS_Token"))
     const [socket, setSocket] = useState(null)
 
+    const [mode, setMode]= useState("dark");
+
 
     const [isLoading, setIsLoading] = useState(false);
 
@@ -174,7 +176,8 @@ export const AuthPorvider = ({ children }) => {
         navigate,
         isLoading, setIsLoading,
         token, setToken,
-        updateUserConnections
+        updateUserConnections,
+        mode, setMode
     }
 
     return (

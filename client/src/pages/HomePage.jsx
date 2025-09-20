@@ -20,36 +20,45 @@ function HomePage() {
 
 
     return (
-        <div className=' w-full  h-screen sm:px-[15%] sm:py-[5%]' >
+        <div className='w-full h-screen sm:px-[15%] sm:py-[5%]'>
             {/* HomePage */}
 
-            <div className={`border-2 border-gray-600 rounded-2xl h-[100%] grid grid-cols-1 
-            relative backdrop-blur-xl overflow-hidden  ${selectedUser ? " md:grid-cols-[1fr_1.5fr_1fr]  xl:grid-cols-[1fr_2fr_1fr] "
-                    :
-                    "md:grid-cols-2"
-                }  `}>
+            <div className={`border-2 rounded-2xl h-[100%] grid grid-cols-1 
+            relative backdrop-blur-xl overflow-hidden
+            dark:border-gray-600 dark:bg-gray-900 
+            light:border-gray-300 light:bg-white
+            ${selectedUser 
+                ? reqSend
+                    ? "md:grid-cols-[1fr_2.5fr] xl:grid-cols-[1fr_3fr]"
+                    : "md:grid-cols-[1fr_1.5fr_1fr] xl:grid-cols-[1fr_2fr_1fr]"
+                : "md:grid-cols-2"
+            }`}>
 
                 <SideBar />
 
                 <ChatContainer />
 
-                {
-                    !reqSend &&
-                    <RightSideBar />
-                }
-
+                {!reqSend && <RightSideBar />}
 
             </div>
+
             {newReq && (
-                <div>
-                    <img src={newReq.profilePic} alt="" />
-                    <p>{newReq.name}</p>
+                <div className="fixed bottom-4 right-4 p-4 rounded-lg shadow-lg
+                               dark:bg-gray-800 dark:text-white
+                               light:bg-white light:text-gray-900">
+                    <img
+                        src={newReq.profilePic}
+                        alt="Profile"
+                        className="w-12 h-12 rounded-full mb-2"
+                    />
+                    <p className="font-medium">{newReq.name}</p>
                 </div>
             )}
 
-
-            <AllRequests allRequestShow={allRequestShow} setAllRequestShow={setAllRequestShow} />
-
+            <AllRequests
+                allRequestShow={allRequestShow}
+                setAllRequestShow={setAllRequestShow}
+            />
 
         </div>
     )
