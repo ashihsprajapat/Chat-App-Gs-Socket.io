@@ -5,24 +5,33 @@ import { tokenGenerator } from "../utils/tokenGenerate.js";
 import cloudinary from "../utils/Claudinary.js";
 
 import { io, userSocketMap } from "../server.js";
+import { prisma } from "../lib/prisma.ts";
 
 //user register function
 export const Register = async (req, res) => {
+    console.log("req body is", req.body)
+    if(!req.body)
+        return res.status(400).json({message :req.body,success:false})
     const { name, email, password, bio } = req.body;
-
+    console.log("request is commig in user controller")
 
     try {
 
         if (!name || !email || !password || !bio)
-            return res.status(500).json({ message: "All detaul are requried", success: false })
+            return res.status(400).json({ message: "All detaul are requried", success: false })
 
-        const user = await User.findOne({ email }).select("-password")
+         const user = await prisma.user.findUnique({
+            where: { email }
+        });
+        console.log("user find -----> ", user)
 
         if (user)
-            return res.json({ message: "email all ready exist", success: false })
+            return res.status(409).json({ message: "email all ready exist", success: false })
 
         //hashpassword
         const hashPassword = await bcrypt.hash(password, 10)
+
+        const newUsers= prisma.User.findOne()
 
         const newUser = new User({
             name, email, password: hashPassword, bio
@@ -32,10 +41,10 @@ export const Register = async (req, res) => {
 
         const token = tokenGenerator(newUser._id)
 
-        res.json({ message: "user register successFull", user: newUser, success: true, token })
+        res.status(201).json({ message: "user register successFull", user: newUser, success: true, token })
     } catch (err) {
-        console.log(err)
-        res.json({ message: err.message, success: true })
+        console.log(" error occur in register",err.message)
+        res.status(500).json({ message: err.message, success: true })
     }
 
 }
@@ -45,38 +54,36 @@ export const login = async (req, res) => {
     const { email, password } = req.body;
 
     if (!email || !password)
-        return res.json({ message: "all Details are required", success: false })
+        return res.status(400).json({ message: "all Details are required", success: false })
 
     try {
-        const user = await User.findOne({ email })
+        const user = await User.findOne({ email }).select("-password")
 
         if (!user)
-            return res.json({ message: "User not found", success: false })
+            return res.status(404).json({ message: "User not found", success: false })
 
         let match = await bcrypt.compare(password, user.password)
 
         if (!match)
-            return res.json({ message: "Wrong password", success: false })
+            return res.status(401).json({ message: "Wrong password", success: false })
 
         const token = tokenGenerator(user._id)
 
-        res.json({ message: "Login successfully", user, success: true, token })
+        res.status(200).json({ message: "Login successfully", user, success: true, token })
 
     }
     catch (err) {
-        console.log(err)
-        res.json({ message: err.message, success: false })
+        res.status(500).json({ message: err.message, success: false })
     }
 }
 
 //chech user authenticate or not
 export const isAuthUser = async (req, res) => {
     try {
-        res.json({ success: true, user: req.user, message: "authenticate user" })
+        res.status(200).json({ success: true, user: req.user, message: "authenticate user" })
 
     } catch (err) {
-        console.log(err.message)
-        res.json({ success: false, message: err.message })
+        res.status(500).json({ success: false, message: err.message })
     }
 }
 
@@ -98,11 +105,10 @@ export const userUpdate = async (req, res) => {
             updateUser = await User.findByIdAndUpdate(userId, { bio, name, profilePic: upload.secure_url }, { new: true })
         }
 
-        res.json({ success: true, message: "user update", user: updateUser })
+        res.status(201).json({ success: true, message: "user update", user: updateUser })
 
     } catch (err) {
-        console.log(err.message)
-        res.json({ success: false, message: err.message })
+        res.status(500).json({ success: false, message: err.message })
 
     }
 
@@ -120,6 +126,8 @@ export const sendRequest = async (req, res) => {
         const { id: selectedUserId } = req.params;
 
         const selectedUser = await User.findById(selectedUserId).select("-password")
+        if(!selectedUser)
+            return res.status(404).json({success:false, message:"user not found"})
 
         const allReadySendReq = Array.isArray(selectedUser.requests) && selectedUser.requests.length > 0
             ? selectedUser.requests.some((userId) => userId.toString() === user._id.toString())

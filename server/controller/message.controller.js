@@ -38,7 +38,7 @@ export const getUsersForSidebar = async (req, res) => {
 
 }
 
-//get all messsage  message selected user
+//get all messsage  for  selected user
 export const getMessage = async (req, res) => {
     try {
 
@@ -56,8 +56,9 @@ export const getMessage = async (req, res) => {
         }
 
         const days = user.connections.get(selectedUserId)
+        
 
-const beforeDateMessage = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+const beforeDateMessage = new Date(Date.now() - 20 * 24 * 60 * 60 * 1000);
 
 
         // console.log(userId, selectedUserId)
@@ -66,19 +67,19 @@ const beforeDateMessage = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
             $or: [
                 { sender: userId, reciever: selectedUserId }
                 , { sender: selectedUserId, reciever: userId }
-            ],
-            createdAt: { $gte: beforeDateMessage }
+            ]
 
         })
+         console.log("message for selected user is", message)
 
-        const now = Date.now();
+        // const now = Date.now();
 
-        for (let msg of message) {
-            const diff = Math.floor((now - new Date(msg.createdAt).getTime()) / (1000 * 60 * 60))
-            if (diff > 168) {
-                await Message.findByIdAndDelete(msg._id)
-            }
-        }
+        // for (let msg of message) {
+        //     const diff = Math.floor((now - new Date(msg.createdAt).getTime()) / (1000 * 60 * 60))
+        //     if (diff > 168) {
+        //         await Message.findByIdAndDelete(msg._id)
+        //     }
+        // }
         //console.log(message)
         // console.log(message.length)
 

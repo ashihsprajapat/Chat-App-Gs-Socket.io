@@ -6,6 +6,6 @@ import mongoose from "mongoose";
 
 
 export async function main() {
-        await mongoose.connect(`${process.env.DBURL}/Chat-App-GS`);
+        await mongoose.connect(`${process.env.DBURL}/Chat-App-GS-Google`);
         console.log("Connect ot DB")
 }

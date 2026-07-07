@@ -1,0 +1,51 @@
+
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+
+model User {
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
+  password     String
+  profilePic   String   @default("")
+  bio          String?
+  
+  // Relations
+  sentRequests     Request[] @relation("sentRequests")
+  receivedRequests Request[] @relation("receivedRequests")
+
+  // JSON instead of Map
+  connections Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Request {
+  id         Int   @id @default(autoincrement())
+
+  sender     User  @relation("sentRequests", fields: [senderId], references: [id])
+  senderId   Int
+
+  receiver   User  @relation("receivedRequests", fields: [receiverId], references: [id])
+  receiverId Int
+
+  status     String @default("pending") // pending, accepted
+
+  createdAt  DateTime @default(now())
+}
+
+model ashihs2{
+  id Int @id @default(autoincrement())
+  name String
+  college String 
+  age Int 
+}
