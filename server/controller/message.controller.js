@@ -1,6 +1,11 @@
 import { Message } from "../model/messag.js";
 import { User } from "../model/user.js";
 import cloudinary from "../utils/Claudinary.js";
+import {
+    getCachedConversation,
+    cacheConversation,
+    invalidateConversation,
+} from "../utils/redis.js";
 
 import { io, userSocketMap } from "../server.js";
 
@@ -62,20 +67,26 @@ export const getMessage = async (req, res) => {
 
         // console.log(userId, selectedUserId)
 
-        const message = await Message.find({
-            $or: [
-                { sender: userId, reciever: selectedUserId }
-                , { sender: selectedUserId, reciever: userId }
-            ],
-        
-
-        })
-
-        const now = Date.now();
-
-
+        let message = await getCachedConversation(userId, selectedUserId);
+        if (!message) {
+            message = await Message.find({
+                $or: [
+                    { sender: userId, reciever: selectedUserId },
+                    { sender: selectedUserId, reciever: userId },
+                ],
+            }).lean();
+        }
 
         await Message.updateMany({ sender: selectedUserId, reciever: userId }, { seen: true })
+
+        // Keep the response and cache consistent with the read-status update.
+        message = message.map((item) => {
+            if (String(item.sender) === String(selectedUserId) && String(item.reciever) === String(userId)) {
+                return { ...item, seen: true };
+            }
+            return item;
+        });
+        await cacheConversation(userId, selectedUserId, message);
 
         res.json({ success: true, message })
 
@@ -94,6 +105,9 @@ export const markMessageAsSeen = async (req, res) => {
         const { id } = req.params
 
         await Message.findByIdAndUpdate(id, { seen: true })
+
+        const message = await Message.findById(id).select("sender reciever").lean();
+        if (message) await invalidateConversation(message.sender, message.reciever);
 
         res.json({ success: true })
     } catch (err) {
@@ -127,6 +141,7 @@ export const sendMessage = async (req, res) => {
         })
 
         await newMessage.save()
+        await invalidateConversation(sender, reciever)
 
         //Emit the new message to the recever's socket
         const recieverSocketId = userSocketMap[reciever]

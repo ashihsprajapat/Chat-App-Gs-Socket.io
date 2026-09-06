@@ -2,13 +2,11 @@
 
 import express from 'express'
 import dotenv from "dotenv"
+dotenv.config()
 import http from 'http'
 import cors from "cors"
 import mongoose from 'mongoose'
 import { Server } from 'socket.io'
-
-import { User } from './model/user.js'
-import { Message } from './model/messag.js'
 
 import { main } from './utils/DBConnection.js'
 
@@ -71,8 +69,6 @@ if (process.env.NODE_ENV !== "production") {
 //connect to server
 main()
     .catch(err => console.log(err));
-
-
 
 app.use("/api/user", userRouter)
 
