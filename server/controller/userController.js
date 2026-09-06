@@ -5,6 +5,7 @@ import { tokenGenerator } from "../utils/tokenGenerate.js";
 import cloudinary from "../utils/Claudinary.js";
 
 import { io, userSocketMap } from "../server.js";
+import { cacheUser, getCachedUser, invalidateUser, publicUser } from "../utils/redis.js";
 
 //user register function
 export const Register = async (req, res) => {
@@ -29,10 +30,11 @@ export const Register = async (req, res) => {
         })
 
         await newUser.save()
+        await cacheUser(newUser)
 
         const token = tokenGenerator(newUser._id)
 
-        res.json({ message: "user register successFull", user: newUser, success: true, token })
+        res.json({ message: "user register successFull", user: publicUser(newUser), success: true, token })
     } catch (err) {
         console.log(err)
         res.json({ message: err.message, success: true })
@@ -48,7 +50,8 @@ export const login = async (req, res) => {
         return res.json({ message: "all Details are required", success: false })
 
     try {
-        const user = await User.findOne({ email })
+        let user = await getCachedUser({ email })
+        if (!user) user = await User.findOne({ email })
 
         if (!user)
             return res.json({ message: "User not found", success: false })
@@ -59,6 +62,7 @@ export const login = async (req, res) => {
             return res.json({ message: "Wrong password", success: false })
 
         const token = tokenGenerator(user._id)
+        await cacheUser(user)
 
         res.json({ message: "Login successfully", user, success: true, token })
 
@@ -98,6 +102,9 @@ export const userUpdate = async (req, res) => {
             updateUser = await User.findByIdAndUpdate(userId, { bio, name, profilePic: upload.secure_url }, { new: true })
         }
 
+        await invalidateUser(req.user)
+        await cacheUser(updateUser)
+
         res.json({ success: true, message: "user update", user: updateUser })
 
     } catch (err) {
@@ -129,6 +136,7 @@ export const sendRequest = async (req, res) => {
 
             selectedUser.requests.push(user._id)
             await selectedUser.save()
+            await cacheUser(selectedUser)
 
 
             const socketId = userSocketMap[selectedUserId];
@@ -194,6 +202,7 @@ export const acceptingRequest = async (req, res) => {
         user.requests = user.requests.filter((id) => id.toString() !== reqUserId);
 
         await user.save()
+        await cacheUser(user)
 
         res.json({ message: `req is ${accept}`, success: true })
 

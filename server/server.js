@@ -2,13 +2,11 @@
 
 import express from 'express'
 import dotenv from "dotenv"
+dotenv.config()
 import http from 'http'
 import cors from "cors"
 import mongoose from 'mongoose'
 import { Server } from 'socket.io'
-
-import { User } from './model/user.js'
-import { Message } from './model/messag.js'
 
 import { main } from './utils/DBConnection.js'
 
@@ -39,6 +37,15 @@ io.on("connection", socket => {
     if (userId)
         userSocketMap[userId] = socket.id
 
+    // WebRTC signaling is relayed only; media never passes through the server.
+    const relayCallEvent = (event, payload = {}) => {
+        const targetSocketId = userSocketMap[payload.to]
+        if (targetSocketId) socket.to(targetSocketId).emit(event, { ...payload, from: userId })
+    }
+    ;["call:offer", "call:answer", "call:ice-candidate", "call:decline", "call:end"].forEach((event) => {
+        socket.on(event, (payload) => relayCallEvent(event, payload))
+    })
+
     //emit online user to all connected cliend
     io.emit("getOnlineUsers", Object.keys(userSocketMap))  //its return only key as userId not send with value of socket.id
 
@@ -51,7 +58,8 @@ io.on("connection", socket => {
 })
 
 //Middleware setUp function cors and express json
-app.use(express.json({ limit: "4mb" }))
+// Multiple base64 images can make a request considerably larger than one photo.
+app.use(express.json({ limit: "25mb" }))
 app.use(cors())
 
 
@@ -70,8 +78,6 @@ if (process.env.NODE_ENV !== "production") {
 //connect to server
 main()
     .catch(err => console.log(err));
-
-
 
 app.use("/api/user", userRouter)
 

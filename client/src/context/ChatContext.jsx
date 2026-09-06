@@ -93,11 +93,14 @@ export const ChatProvider = ({ children }) => {
                 setMessage((prev) => ([...prev, data.newMessage]))
                 // No need to call getMessageSelectedUser since we already have the new message
                 // This prevents triggering skeleton loading when sending messages
+                return true
             } else {
                 toast.error(data.message)
+                return false
             }
         } catch (e) {
             toast.error(e.message)
+            return false
         }
     }
 

@@ -3,6 +3,7 @@ import dotenv from 'dotenv'
 dotenv.config()
 import jwt from 'jsonwebtoken'
 import { User } from "../model/user.js";
+import { cacheUser, getCachedUser } from "../utils/redis.js";
 export const isAuth = async (req, res, next) => {
 
     try {
@@ -16,10 +17,20 @@ export const isAuth = async (req, res, next) => {
 
         const userId = decoded.id;
 
-        const user = await User.findById(userId).select("-password")
+        let user = await getCachedUser({ id: userId });
+        if (!user) {
+            user = await User.findById(userId).select("-password");
+            await cacheUser(user);
+        }
 
         if (!user)
             return res.json({ success: false, message: "Not authenticate" })
+
+        // Redis stores JSON, so restore MongoDB's Map field for controllers
+        // that use connections.has() and connections.get().
+        if (!(user.connections instanceof Map)) {
+            user.connections = new Map(Object.entries(user.connections || {}));
+        }
 
         req.user = user;
         next()

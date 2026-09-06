@@ -1,6 +1,11 @@
 import { Message } from "../model/messag.js";
 import { User } from "../model/user.js";
 import cloudinary from "../utils/Claudinary.js";
+import {
+    getCachedConversation,
+    cacheConversation,
+    invalidateConversation,
+} from "../utils/redis.js";
 
 import { io, userSocketMap } from "../server.js";
 
@@ -57,35 +62,31 @@ export const getMessage = async (req, res) => {
 
         const days = user.connections.get(selectedUserId)
 
-const beforeDateMessage = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+        const beforeDateMessage = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
 
         // console.log(userId, selectedUserId)
 
-        const message = await Message.find({
-            $or: [
-                { sender: userId, reciever: selectedUserId }
-                , { sender: selectedUserId, reciever: userId }
-            ],
-            createdAt: { $gte: beforeDateMessage }
-
-        })
-
-        const now = Date.now();
-
-        for (let msg of message) {
-            const diff = Math.floor((now - new Date(msg.createdAt).getTime()) / (1000 * 60 * 60))
-            if (diff > 168) {
-                await Message.findByIdAndDelete(msg._id)
-            }
+        let message = await getCachedConversation(userId, selectedUserId);
+        if (!message) {
+            message = await Message.find({
+                $or: [
+                    { sender: userId, reciever: selectedUserId },
+                    { sender: selectedUserId, reciever: userId },
+                ],
+            }).lean();
         }
-        //console.log(message)
-        // console.log(message.length)
-
-        // console.log("all message", message)
-
 
         await Message.updateMany({ sender: selectedUserId, reciever: userId }, { seen: true })
+
+        // Keep the response and cache consistent with the read-status update.
+        message = message.map((item) => {
+            if (String(item.sender) === String(selectedUserId) && String(item.reciever) === String(userId)) {
+                return { ...item, seen: true };
+            }
+            return item;
+        });
+        await cacheConversation(userId, selectedUserId, message);
 
         res.json({ success: true, message })
 
@@ -105,6 +106,9 @@ export const markMessageAsSeen = async (req, res) => {
 
         await Message.findByIdAndUpdate(id, { seen: true })
 
+        const message = await Message.findById(id).select("sender reciever").lean();
+        if (message) await invalidateConversation(message.sender, message.reciever);
+
         res.json({ success: true })
     } catch (err) {
         res.json({ message: err.message, success: false })
@@ -116,24 +120,28 @@ export const sendMessage = async (req, res) => {
     try {
         const sender = req.user._id
         const { id: reciever } = req.params
-        const { text, image } = req.body
+        const { text, image, images = [] } = req.body
+        const imageInputs = Array.isArray(images) ? images : []
+        if (image && !imageInputs.includes(image)) imageInputs.push(image)
 
-
-        let imageurl;
-
-        if (image) {
-            let upload = await cloudinary.uploader.upload(image)
-            imageurl = upload.secure_url
-        }
+        const imageUploads = await Promise.all(
+            imageInputs.filter(Boolean).map((source) => cloudinary.uploader.upload(source, {
+                folder: "chat-app/messages",
+                resource_type: "image",
+            }))
+        )
+        const imageUrls = imageUploads.map((upload) => upload.secure_url)
 
         let newMessage = new Message({
             sender,
             reciever,
-            image: imageurl,
+            image: imageUrls[0] || undefined,
+            images: imageUrls,
             text,
         })
 
         await newMessage.save()
+        await invalidateConversation(sender, reciever)
 
         //Emit the new message to the recever's socket
         const recieverSocketId = userSocketMap[reciever]
