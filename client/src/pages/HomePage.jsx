@@ -1,6 +1,6 @@
 
 
-import React, { useContext, useState } from 'react'
+import React, { useContext, useEffect, useState } from 'react'
 import ChatContainer from '../components/ChatContainer'
 import SideBar from '../components/SideBar'
 import RightSideBar from '../components/RightSideBar'
@@ -14,9 +14,14 @@ function HomePage() {
     // const { selectedUser, setSelectedUser} = useState(true)
 
     const [allRequestShow, setAllRequestShow] = useState(false);
+    const [showRightSidebar, setShowRightSidebar] = useState(true);
 
     const { selectedUser, setSelectedUser, reqSend, setReqSend, newReq } = useContext(ChatContext)
     const { mode, setMode } = useContext(AuthContext)
+
+    useEffect(() => {
+        setShowRightSidebar(Boolean(selectedUser) && !reqSend);
+    }, [selectedUser, reqSend]);
 
 
 
@@ -44,7 +49,7 @@ function HomePage() {
             dark:border-gray-600 dark:bg-gray-900 
             light:border-gray-300 light:bg-white
             ${selectedUser
-                    ? reqSend
+                        ? reqSend || !showRightSidebar
                         ? "md:grid-cols-[1fr_2.5fr] xl:grid-cols-[1fr_3fr]"
                         : "md:grid-cols-[1fr_1.5fr_1fr] xl:grid-cols-[1fr_2fr_1fr]"
                     : "md:grid-cols-2"
@@ -52,9 +57,11 @@ function HomePage() {
 
                 <SideBar />
 
-                <ChatContainer />
+                <ChatContainer onShowRightSidebar={() => setShowRightSidebar(true)} />
 
-                {!reqSend && <RightSideBar />}
+                {!reqSend && showRightSidebar && (
+                    <RightSideBar onClose={() => setShowRightSidebar(false)} />
+                )}
 
             </div>
 

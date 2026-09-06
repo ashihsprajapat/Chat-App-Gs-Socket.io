@@ -4,9 +4,9 @@ import React, { useContext, useEffect, useRef, useState } from 'react'
 import assets from '../assets/assets'
 import { AuthContext } from '../context/AuthContext';
 import { ChatContext } from '../context/ChatContext';
-import { X, Image, Info, Sun, Moon } from 'lucide-react';
+import { X, Image, Info, Sun, Moon, Loader2 } from 'lucide-react';
 
-const ChatContainer = () => {
+const ChatContainer = ({ onShowRightSidebar }) => {
 
 
     const { authUser, onlineUser, updateUserConnections, mode, setMode } = useContext(AuthContext)
@@ -25,27 +25,32 @@ const ChatContainer = () => {
     } = useContext(ChatContext);
 
     const [text, setText] = useState("")
-    const [image, setImage] = useState(null)
+    const [images, setImages] = useState([])
+    const [sending, setSending] = useState(false)
+    const [previewImage, setPreviewImage] = useState(null)
 
     //handle sending a message
     const onSendHendler = async (e) => {
         e.preventDefault();
 
         const trimmedText = text.trim();
-        if (!trimmedText && !image) return; // optional early return
-
-        if (image) {
-            const reader = new FileReader();
-            reader.onload = async () => {
-                await sendMessage({ image: reader.result, text: trimmedText });
-            };
-            reader.readAsDataURL(image);
-        } else {
-            await sendMessage({ text: trimmedText, image: "" });
+        if (sending || (!trimmedText && images.length === 0)) return;
+        setSending(true)
+        try {
+            const encodedImages = await Promise.all(images.map(file => new Promise((resolve, reject) => {
+                const reader = new FileReader()
+                reader.onload = () => resolve(reader.result)
+                reader.onerror = reject
+                reader.readAsDataURL(file)
+            })))
+            const sent = await sendMessage({ text: trimmedText, images: encodedImages })
+            if (sent) {
+                setText("")
+                setImages([])
+            }
+        } finally {
+            setSending(false)
         }
-
-        setText("");
-        setImage(null);
     };
 
     const scrollEnd = useRef(null);
@@ -61,6 +66,12 @@ const ChatContainer = () => {
             scrollEnd.current.scrollIntoView({ behavior: "smooth" })
         }
     }, [message])
+
+    useEffect(() => {
+        const closePreview = (event) => event.key === 'Escape' && setPreviewImage(null)
+        window.addEventListener('keydown', closePreview)
+        return () => window.removeEventListener('keydown', closePreview)
+    }, [])
 
     const formatMessageTime = (timestamp) => {
         const now = new Date();
@@ -87,6 +98,23 @@ const ChatContainer = () => {
         }
     };
 
+    const isSameDay = (firstDate, secondDate) => {
+        const first = new Date(firstDate)
+        const second = new Date(secondDate)
+        return first.toDateString() === second.toDateString()
+    }
+
+    const formatMessageDate = (timestamp) => {
+        const date = new Date(timestamp)
+        const today = new Date()
+        const yesterday = new Date(today)
+        yesterday.setDate(today.getDate() - 1)
+
+        if (date.toDateString() === today.toDateString()) return 'Today'
+        if (date.toDateString() === yesterday.toDateString()) return 'Yesterday'
+        return date.toLocaleDateString([], { day: 'numeric', month: 'long', year: 'numeric' })
+    }
+
 
     const handleSendRequest = () => {
 
@@ -102,14 +130,40 @@ const ChatContainer = () => {
 
 
     return selectedUser ? (
-        <div className={`h-full overflow-scroll relative backdrop-blur-lg w-3xl dark:bg-gray-900 bg-white`}>
+        <div className={`h-full overflow-scroll relative backdrop-blur-lg w-3xl transition-colors duration-300 ${mode === 'dark' ? 'bg-gray-900' : 'bg-white'}`}>
+            {previewImage && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6"
+                    onClick={() => setPreviewImage(null)}
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Image preview"
+                >
+                    <button
+                        type="button"
+                        aria-label="Close image preview"
+                        className="absolute right-5 top-5 rounded-full bg-white/90 p-2 text-gray-900 shadow-lg hover:bg-white"
+                        onClick={() => setPreviewImage(null)}
+                    >
+                        <X className="h-6 w-6" />
+                    </button>
+                    <img
+                        src={previewImage}
+                        alt="Large preview"
+                        className="max-h-full max-w-full rounded-lg object-contain shadow-2xl"
+                        onClick={(event) => event.stopPropagation()}
+                    />
+                </div>
+            )}
             {/* header of chat container */}
             <div className={`flex items-center gap-3 py-3 mx-4 border-b transition-colors duration-200 ${mode === 'dark' ? 'border-stone-500 bg-gray-700/25' : 'border-gray-500 bg-gray-50'}
             ${reqSend ? 'md:w-full' : ''}`}>
                 <img
                     src={selectedUser.profilePic || assets.avatar_icon}
                     alt="User profile"
-                    className={`w-14 h-14 rounded-full object-cover border-2 ${mode === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}
+                    onClick={onShowRightSidebar}
+                    title="Show user details"
+                    className={`w-14 h-14 rounded-full object-cover border-2 cursor-pointer hover:opacity-80 transition-opacity ${mode === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}
                 />
 
                 <div className='flex-1 flex items-center gap-3'>
@@ -279,9 +333,9 @@ const ChatContainer = () => {
                     ) : (
                         <>
                             {/* chat area */}
-                            <div className='flex flex-col h-[calc(100%-120px)] overflow-y-scroll p-3 pb-6 dark:bg-gray-900 bg-white'>
+                            <div className={`flex flex-col h-[calc(100%-120px)] overflow-y-scroll p-3 pb-6 transition-colors duration-300 ${mode === 'dark' ? 'bg-gray-900' : 'bg-white'}`}>
                                 {skeleton ? (
-                                    <div className="flex flex-col gap-8 animate-pulse w-full">
+                                    <div className={`flex flex-col gap-8 animate-pulse w-full h-full transition-colors duration-300 ${mode === 'dark' ? 'bg-gray-900' : 'bg-white'}`}>
                                         {[1, 2, 3, 4, 5, 6].map((item, i) => (
                                             <div key={item} className={`flex w-fit ${i % 2 === 0 ? "flex-row ml-0" : "flex-row-reverse ml-auto"} items-end gap-2`}>
                                                 <div className={`flex flex-col items-end gap-2`}>
@@ -306,14 +360,33 @@ const ChatContainer = () => {
 
                                     <div className={`flex flex-col h-full overflow-y-scroll p-3 pb-6 transition-colors duration-300 ${mode === 'dark' ? 'bg-gray-900' : 'bg-white'}`}>
                                         {/* message showing in this div */}
-                                        {message.length > 0 ? message.map((msg, idx) => (
-                                            <div key={idx} className={`flex items-end gap-2 justify-end ${msg.sender !== authUser._id && 'flex-row-reverse'}`}>
-                                                {msg.image ? (
-                                                    <img
-                                                        src={msg.image}
-                                                        className={`max-w-[230px] rounded-lg overflow-hidden mb-8 border transition-colors duration-300 
-                        ${mode === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}
-                                                    />
+                                        {message.length > 0 ? message.map((msg, idx) => {
+                                            const showDate = idx === 0 || !isSameDay(message[idx - 1].createdAt, msg.createdAt)
+                                            return <React.Fragment key={msg._id || idx}>
+                                            {showDate && <div className="flex justify-center my-4">
+                                                <span className={`rounded-full px-3 py-1 text-xs shadow-sm ${mode === 'dark' ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-600'}`}>
+                                                    {formatMessageDate(msg.createdAt)}
+                                                </span>
+                                            </div>}
+                                            <div className={`flex items-end gap-2 justify-end ${msg.sender !== authUser._id && 'flex-row-reverse'}`}>
+                                                {(msg.images?.length || msg.image) ? (
+                                                    <div className="flex flex-col items-end gap-2 max-w-[240px] mb-8">
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {(msg.images?.length ? msg.images : [msg.image]).map((src, imageIndex) => <img
+                                                            key={imageIndex}
+                                                            src={src}
+                                                            alt="Sent attachment"
+                                                            onClick={() => setPreviewImage(src)}
+                                                            className={`max-w-[230px] max-h-[230px] rounded-lg overflow-hidden border transition-colors duration-300 
+                        ${mode === 'dark' ? 'border-gray-700' : 'border-gray-200'} cursor-pointer`}
+                                                            />)}
+                                                        </div>
+                                                        {msg.text && <p className={`p-2 max-w-[200px] md:text-sm font-light rounded-lg break-all transition-colors duration-300
+                    ${mode === 'dark' ? 'bg-violet-500/30 text-white' : 'bg-violet-100 text-gray-900'}
+                    ${msg.sender === authUser._id ? "rounded-br-none" : "rounded-bl"}`}>
+                                                            {msg.text}
+                                                        </p>}
+                                                    </div>
                                                 ) : (
                                                     <p className={`p-2 max-w-[200px] md:text-sm font-light rounded-lg mb-8 break-all transition-colors duration-300
                     ${mode === 'dark'
@@ -336,7 +409,8 @@ const ChatContainer = () => {
                                                     </p>
                                                 </div>
                                             </div>
-                                        )) : (
+                                            </React.Fragment>
+                                        }) : (
                                             <div className='flex flex-col items-center justify-center h-full'>
                                                 <div className="animate-bounce mb-4">
                                                     <svg
@@ -369,21 +443,12 @@ const ChatContainer = () => {
                                 )}
 
                                 {/* Image preview */}
-                                {image && (
-                                    <div className={`absolute bottom-[70px] ml-3 left-0 right-0 flex justify-left ${image && 'p-2   dark:border-gray-700 shadow-lg rounded-lg w-fit bg-gray-200'}`}>
-                                        <div className="relative w-[200px]">
-                                            <button
-                                                onClick={() => setImage(null)}
-                                                className="absolute -top-2 -right-2 p-1 dark:bg-gray-800 bg-gray-100 hover:bg-gray-700 rounded-full cursor-pointer transition-colors z-10"
-                                            >
-                                                <X className="w-4 h-4 dark:text-white text-gray-900" />
-                                            </button>
-                                            <img
-                                                src={URL.createObjectURL(image)}
-                                                alt="Selected image"
-                                                className="w-full h-auto max-h-[130px] rounded-lg object-cover shadow-lg"
-                                            />
-                                        </div>
+                                {images.length > 0 && (
+                                    <div className="absolute bottom-[70px] ml-3 left-0 right-0 flex gap-2 p-2 shadow-lg rounded-lg w-fit bg-gray-200">
+                                        {images.map((file, index) => <div className="relative w-20" key={`${file.name}-${index}`}>
+                                            <button onClick={() => setImages(prev => prev.filter((_, i) => i !== index))} className="absolute -top-2 -right-2 p-1 bg-gray-100 hover:bg-gray-700 rounded-full cursor-pointer z-10"><X className="w-4 h-4 text-gray-900" /></button>
+                                            <img src={URL.createObjectURL(file)} alt="Selected image" className="w-full h-20 rounded-lg object-cover shadow-lg" />
+                                        </div>)}
                                     </div>
                                 )}
 
@@ -403,19 +468,20 @@ const ChatContainer = () => {
                                             id='image'
                                             accept='image/png,image/jpeg'
                                             hidden
-                                            onChange={(e) => setImage(e.target.files[0])}
+                                            multiple
+                                            onChange={(e) => { setImages(Array.from(e.target.files || [])); e.target.value = '' }}
                                         />
                                         <label htmlFor="image">
                                             <Image className={`w-6 h-6 transition-colors duration-300 ${mode === 'dark' ? 'text-gray-300' : 'text-gray-600'}`} />
                                         </label>
                                     </div>
 
-                                    <img
+                                    {sending ? <Loader2 className="w-7 h-7 animate-spin text-violet-500" /> : <img
                                         src={assets.send_button}
                                         alt=""
                                         className={`w-7 cursor-pointer transition-all duration-300 ${mode === 'dark' ? 'invert' : ''}`}
                                         onClick={(e) => onSendHendler(e)}
-                                    />
+                                    />}
                                 </div>
                             </div>
                         </>

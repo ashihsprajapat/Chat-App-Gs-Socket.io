@@ -51,7 +51,8 @@ io.on("connection", socket => {
 })
 
 //Middleware setUp function cors and express json
-app.use(express.json({ limit: "4mb" }))
+// Multiple base64 images can make a request considerably larger than one photo.
+app.use(express.json({ limit: "25mb" }))
 app.use(cors())
 
 

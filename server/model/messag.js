@@ -17,7 +17,9 @@ const messageSchema = new Schema({
     },
 
     text: { type: String },
+    // `image` is kept for backwards compatibility with older messages.
     image: { type: String },
+    images: { type: [String], default: [] },
     seen: { type: Boolean, default: false },
 
 
