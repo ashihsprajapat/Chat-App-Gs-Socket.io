@@ -4,12 +4,12 @@ import React, { useContext, useEffect, useRef, useState } from 'react'
 import assets from '../assets/assets'
 import { AuthContext } from '../context/AuthContext';
 import { ChatContext } from '../context/ChatContext';
-import { X, Image, Info, Sun, Moon, Loader2 } from 'lucide-react';
+import { X, Image, Info, Sun, Moon, Loader2, Video, PhoneOff, Mic, Camera } from 'lucide-react';
 
 const ChatContainer = ({ onShowRightSidebar }) => {
 
 
-    const { authUser, onlineUser, updateUserConnections, mode, setMode } = useContext(AuthContext)
+    const { authUser, onlineUser, updateUserConnections, mode, setMode, socket } = useContext(AuthContext)
 
     const {
         selectedUser, setSelectedUser,
@@ -28,6 +28,80 @@ const ChatContainer = ({ onShowRightSidebar }) => {
     const [images, setImages] = useState([])
     const [sending, setSending] = useState(false)
     const [previewImage, setPreviewImage] = useState(null)
+    const [call, setCall] = useState(null)
+    const localVideo = useRef(null)
+    const remoteVideo = useRef(null)
+    const peer = useRef(null)
+    const stream = useRef(null)
+
+    const stopCall = (notify = true) => {
+        if (notify && socket && selectedUser) socket.emit('call:end', { to: selectedUser._id })
+        peer.current?.close()
+        stream.current?.getTracks().forEach(track => track.stop())
+        peer.current = null
+        stream.current = null
+        setCall(null)
+    }
+
+    const createPeer = (otherId) => {
+        const connection = new RTCPeerConnection({
+            iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+        })
+        connection.onicecandidate = event => event.candidate && socket.emit('call:ice-candidate', { to: otherId, candidate: event.candidate })
+        connection.ontrack = event => { if (remoteVideo.current) remoteVideo.current.srcObject = event.streams[0] }
+        peer.current = connection
+        stream.current?.getTracks().forEach(track => connection.addTrack(track, stream.current))
+        return connection
+    }
+
+    const startCall = async () => {
+        if (!socket || !selectedUser || !onlineUser.includes(selectedUser._id)) return
+        try {
+            stream.current = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+            setCall({ status: 'calling', other: selectedUser })
+            if (localVideo.current) localVideo.current.srcObject = stream.current
+            const connection = createPeer(selectedUser._id)
+            const offer = await connection.createOffer()
+            await connection.setLocalDescription(offer)
+            socket.emit('call:offer', {
+                to: selectedUser._id,
+                offer,
+                caller: { _id: authUser._id, name: authUser.name, profilePic: authUser.profilePic }
+            })
+        } catch { stopCall(false) }
+    }
+
+    useEffect(() => {
+        if (!socket) return
+        const onOffer = async ({ from, offer, caller: callerInfo }) => {
+            const caller = selectedUser?._id === from
+                ? selectedUser
+                : { _id: from, name: callerInfo?.name || 'Incoming caller', profilePic: callerInfo?.profilePic }
+            setCall({ status: 'incoming', other: caller, offer })
+        }
+        const onAnswer = async ({ answer }) => { if (peer.current) await peer.current.setRemoteDescription(answer); setCall(prev => prev && ({ ...prev, status: 'connected' })) }
+        const onCandidate = async ({ candidate }) => { try { await peer.current?.addIceCandidate(candidate) } catch { stopCall(false) } }
+        const onEnd = () => stopCall(false)
+        const onDecline = () => stopCall(false)
+        socket.on('call:offer', onOffer); socket.on('call:answer', onAnswer); socket.on('call:ice-candidate', onCandidate)
+        socket.on('call:end', onEnd); socket.on('call:decline', onDecline)
+        return () => { socket.off('call:offer', onOffer); socket.off('call:answer', onAnswer); socket.off('call:ice-candidate', onCandidate); socket.off('call:end', onEnd); socket.off('call:decline', onDecline) }
+    }, [socket, selectedUser])
+
+    const acceptCall = async () => {
+        try {
+            stream.current = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+            if (localVideo.current) localVideo.current.srcObject = stream.current
+            const connection = createPeer(call.other._id)
+            await connection.setRemoteDescription(call.offer)
+            const answer = await connection.createAnswer()
+            await connection.setLocalDescription(answer)
+            socket.emit('call:answer', { to: call.other._id, answer })
+            setCall(prev => ({ ...prev, status: 'connected' }))
+        } catch { stopCall(false) }
+    }
+
+    const toggleTrack = (kind) => stream.current?.getTracks().filter(track => track.kind === kind).forEach(track => { track.enabled = !track.enabled; setCall(prev => ({ ...prev })) })
 
     //handle sending a message
     const onSendHendler = async (e) => {
@@ -129,7 +203,21 @@ const ChatContainer = ({ onShowRightSidebar }) => {
     }
 
 
-    return selectedUser ? (
+    return (
+        <>
+        {!selectedUser && call?.status === 'incoming' && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 p-4">
+                <div className="w-full max-w-sm rounded-2xl bg-slate-900 p-8 text-center text-white shadow-2xl">
+                    <img src={call.other.profilePic || assets.avatar_icon} alt={call.other.name} className="mx-auto mb-4 h-20 w-20 rounded-full object-cover ring-4 ring-green-500/30" />
+                    <p className="text-xl font-semibold">{call.other.name} is calling</p>
+                    <div className="mt-6 flex justify-center gap-4">
+                        <button onClick={acceptCall} className="rounded-full bg-green-600 px-6 py-3">Pick up</button>
+                        <button onClick={() => { socket.emit('call:decline', { to: call.other._id }); stopCall(false) }} className="rounded-full bg-red-600 px-6 py-3">Cut call</button>
+                    </div>
+                </div>
+            </div>
+        )}
+        {selectedUser ? (
         <div className={`h-full overflow-scroll relative backdrop-blur-lg w-3xl transition-colors duration-300 ${mode === 'dark' ? 'bg-gray-900' : 'bg-white'}`}>
             {previewImage && (
                 <div
@@ -155,6 +243,13 @@ const ChatContainer = ({ onShowRightSidebar }) => {
                     />
                 </div>
             )}
+            {call && selectedUser && (
+                <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/95 p-4">
+                    <div className="w-full max-w-3xl rounded-2xl bg-slate-900 p-4 text-white shadow-2xl">
+                        {call.status === 'incoming' ? <div className="py-10 text-center"><img src={call.other.profilePic || assets.avatar_icon} alt={call.other.name} className="mx-auto mb-4 h-20 w-20 rounded-full object-cover" /><p className="text-xl font-semibold">{call.other.name} is calling</p><div className="mt-6 flex justify-center gap-4"><button onClick={acceptCall} className="rounded-full bg-green-600 px-6 py-3">Pick up</button><button onClick={() => { socket.emit('call:decline', { to: call.other._id }); stopCall(false) }} className="rounded-full bg-red-600 px-6 py-3">Cut call</button></div></div> : <><div className="relative aspect-video overflow-hidden rounded-xl bg-black"><video ref={remoteVideo} autoPlay playsInline className="h-full w-full object-contain" /><video ref={localVideo} autoPlay muted playsInline className="absolute bottom-3 right-3 h-28 w-40 rounded-lg object-cover" /><p className="absolute left-3 top-3 rounded bg-black/50 px-2 py-1">{call.status === 'calling' ? 'Calling…' : 'Connected'}</p></div><div className="mt-4 flex justify-center gap-3"><button onClick={() => toggleTrack('audio')} className="rounded-full bg-slate-700 p-3" title="Toggle microphone"><Mic className="h-5 w-5" /></button><button onClick={() => toggleTrack('video')} className="rounded-full bg-slate-700 p-3" title="Toggle camera"><Camera className="h-5 w-5" /></button><button onClick={() => stopCall()} className="rounded-full bg-red-600 p-3" title="End call"><PhoneOff className="h-5 w-5" /></button></div></>}
+                    </div>
+                </div>
+            )}
             {/* header of chat container */}
             <div className={`flex items-center gap-3 py-3 mx-4 border-b transition-colors duration-200 ${mode === 'dark' ? 'border-stone-500 bg-gray-700/25' : 'border-gray-500 bg-gray-50'}
             ${reqSend ? 'md:w-full' : ''}`}>
@@ -177,6 +272,15 @@ const ChatContainer = ({ onShowRightSidebar }) => {
                         </span>
                     )}
                 </div>
+                <button
+                    type="button"
+                    onClick={startCall}
+                    disabled={!onlineUser.includes(selectedUser._id)}
+                    title={onlineUser.includes(selectedUser._id) ? 'Start video call' : 'User is offline'}
+                    className={`p-2 rounded-full transition-colors ${onlineUser.includes(selectedUser._id) ? 'text-green-500 hover:bg-green-100' : 'text-gray-400 cursor-not-allowed'}`}
+                >
+                    <Video className="w-5 h-5" />
+                </button>
                 <button
                     onClick={() => setMode(p => p === 'dark' ? "light" : "dark")}
                     className={`p-2 rounded-lg transition-all duration-300 hover:scale-110
@@ -529,6 +633,8 @@ const ChatContainer = ({ onShowRightSidebar }) => {
                     : 'via-violet-400/20'}`}>
             </div>
         </div>
+    )}
+    </>
     )
 
 }

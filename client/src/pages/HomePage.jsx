@@ -14,13 +14,13 @@ function HomePage() {
     // const { selectedUser, setSelectedUser} = useState(true)
 
     const [allRequestShow, setAllRequestShow] = useState(false);
-    const [showRightSidebar, setShowRightSidebar] = useState(true);
+    const [showRightSidebar, setShowRightSidebar] = useState(false);
 
     const { selectedUser, setSelectedUser, reqSend, setReqSend, newReq } = useContext(ChatContext)
     const { mode, setMode } = useContext(AuthContext)
 
     useEffect(() => {
-        setShowRightSidebar(Boolean(selectedUser) && !reqSend);
+        setShowRightSidebar(Boolean(selectedUser) && !reqSend && window.innerWidth >= 768);
     }, [selectedUser, reqSend]);
 
 

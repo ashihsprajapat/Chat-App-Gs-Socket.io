@@ -37,6 +37,15 @@ io.on("connection", socket => {
     if (userId)
         userSocketMap[userId] = socket.id
 
+    // WebRTC signaling is relayed only; media never passes through the server.
+    const relayCallEvent = (event, payload = {}) => {
+        const targetSocketId = userSocketMap[payload.to]
+        if (targetSocketId) socket.to(targetSocketId).emit(event, { ...payload, from: userId })
+    }
+    ;["call:offer", "call:answer", "call:ice-candidate", "call:decline", "call:end"].forEach((event) => {
+        socket.on(event, (payload) => relayCallEvent(event, payload))
+    })
+
     //emit online user to all connected cliend
     io.emit("getOnlineUsers", Object.keys(userSocketMap))  //its return only key as userId not send with value of socket.id
 
